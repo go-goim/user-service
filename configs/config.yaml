@@ -1,8 +1,5 @@
 name: service.goim.user
 version: v0.0.0
-http:
-  scheme: http
-  port: 18051
 grpc:
   scheme: grpc
   port: 18053
@@ -10,6 +7,7 @@ grpc:
 log:
   level: DEBUG
   enable_console: true
+  log_path: ./logs
 metadata:
   grpcSrv: yes
 redis:

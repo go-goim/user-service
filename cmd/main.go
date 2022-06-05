@@ -1,9 +1,7 @@
-package main
+package cmd
 
 import (
 	"context"
-
-	"github.com/gin-gonic/gin"
 
 	friendpb "github.com/go-goim/api/user/friend/v1"
 	userv1 "github.com/go-goim/api/user/v1"
@@ -11,14 +9,12 @@ import (
 	"github.com/go-goim/core/pkg/cmd"
 	"github.com/go-goim/core/pkg/graceful"
 	"github.com/go-goim/core/pkg/log"
-	"github.com/go-goim/core/pkg/mid"
 
 	"github.com/go-goim/user-service/internal/app"
-	"github.com/go-goim/user-service/internal/router"
 	"github.com/go-goim/user-service/internal/service"
 )
 
-func main() {
+func Main() {
 	if err := cmd.ParseFlags(); err != nil {
 		panic(err)
 	}
@@ -31,11 +27,6 @@ func main() {
 	// TODO: add registered grpc services to metadata in service registry.
 	userv1.RegisterUserServiceServer(application.GrpcSrv, service.GetUserService())
 	friendpb.RegisterFriendServiceServer(application.GrpcSrv, service.GetFriendService())
-
-	g := gin.New()
-	g.Use(gin.Recovery(), mid.Logger)
-	router.RegisterRouter(g.Group("/user/service"))
-	application.HTTPSrv.HandlePrefix("/", g)
 
 	if err = application.Run(); err != nil {
 		log.Error("application run error", "error", err)
