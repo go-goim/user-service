@@ -8,4 +8,4 @@ configCenter:
   format: yaml # yaml, json
   paths:
     - common
-    - user
+    - goim.service.user

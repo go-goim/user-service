@@ -15,7 +15,7 @@ export ROCKETMQ_GO_LOG_LEVEL=warn
 export JWT_SECRET="goim"
 
 ## enable config center
-export ENABLE_CONFIG_CENTER=false
+export ENABLE_CONFIG_CENTER=true
 
 ##################################################
 # Development                                    #
