@@ -95,7 +95,7 @@ func (d *FriendDao) CreateFriend(ctx context.Context, friend *data.Friend) error
 
 func (d *FriendDao) UpdateFriendStatus(ctx context.Context, userRelation *data.Friend) error {
 	tx := db.GetDBFromCtx(ctx).Model(userRelation).UpdateColumns(map[string]interface{}{
-		"updated_at": time.Now(),
+		"updated_at": time.Now().Unix(),
 		"status":     userRelation.Status,
 	})
 	if tx.Error != nil {

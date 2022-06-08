@@ -190,7 +190,7 @@ func (u *UserDao) UpdateUser(ctx context.Context, user *data.User) error {
 func (u *UserDao) UndoDelete(ctx context.Context, user *data.User) error {
 	tx := db.GetDBFromCtx(ctx).Model(user).UpdateColumns(map[string]interface{}{
 		"password":   user.Password,
-		"updated_at": time.Now(),
+		"updated_at": time.Now().Unix(),
 		"status":     data.UserStatusNormal,
 	})
 	if tx.Error != nil {
