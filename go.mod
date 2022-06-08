@@ -3,7 +3,7 @@ module github.com/go-goim/user-service
 go 1.17
 
 require (
-	github.com/go-goim/api v0.0.1
+	github.com/go-goim/api v0.0.2
 	github.com/go-goim/core v0.0.3
 	github.com/go-redis/redis/v8 v8.11.5
 	gorm.io/gorm v1.23.5
@@ -58,7 +58,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/sirupsen/logrus v1.6.0 // indirect
-	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tidwall/gjson v1.2.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect

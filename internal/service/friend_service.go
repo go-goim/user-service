@@ -336,7 +336,7 @@ func (s *FriendService) GetFriendRequest(ctx context.Context, req *friendpb.Base
 func (s *FriendService) QueryFriendRequestList(ctx context.Context, req *friendpb.QueryFriendRequestListRequest) (
 	*friendpb.QueryFriendRequestListResponse, error) {
 
-	frList, err := s.friendRequestDao.GetFriendRequests(ctx, req.GetUid())
+	frList, err := s.friendRequestDao.GetFriendRequests(ctx, req.GetUid(), int(req.GetStatus()))
 	if err != nil {
 		return nil, err
 	}

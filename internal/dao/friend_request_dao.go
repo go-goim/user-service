@@ -58,9 +58,10 @@ func (d *FriendRequestDao) GetFriendRequestByID(ctx context.Context, id int64) (
 	return &fr, nil
 }
 
-func (d *FriendRequestDao) GetFriendRequests(ctx context.Context, uid string) ([]*data.FriendRequest, error) {
+func (d *FriendRequestDao) GetFriendRequests(ctx context.Context, uid string, status int) ([]*data.FriendRequest, error) {
 	var frs []*data.FriendRequest
-	if err := db.GetDBFromCtx(ctx).Where("uid = ?", uid).Find(&frs).Error; err != nil {
+	// query friend request send to me.
+	if err := db.GetDBFromCtx(ctx).Where("friend_uid = ? AND status = ?", uid, status).Find(&frs).Error; err != nil {
 		return nil, err
 	}
 
