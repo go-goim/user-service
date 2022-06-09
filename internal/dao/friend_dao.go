@@ -8,8 +8,10 @@ import (
 
 	"gorm.io/gorm"
 
+	friendpb "github.com/go-goim/api/user/friend/v1"
 	"github.com/go-goim/core/pkg/cache"
 	"github.com/go-goim/core/pkg/db"
+	"github.com/go-goim/core/pkg/log"
 
 	"github.com/go-goim/user-service/internal/data"
 )
@@ -40,6 +42,61 @@ func (d *FriendDao) GetFriend(ctx context.Context, uid, friendUID string) (*data
 	}
 
 	return userRelation, nil
+}
+
+func (d *FriendDao) GetFriendByStatus(ctx context.Context, uid, friendUID string, status int) (*data.Friend, error) {
+	ur := new(data.Friend)
+	err := db.GetDBFromCtx(ctx).Where("uid = ? AND friend_uid = ? AND status = ?", uid, friendUID, status).
+		First(&ur).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	return ur, nil
+}
+
+func (d *FriendDao) CheckIsFriend(ctx context.Context, uid, friendUID string) (bool, error) {
+	// check from cache
+	ok, err := d.GetFriendStatusFromCache(ctx, uid, friendUID)
+	if err != nil {
+		return false, err
+	}
+
+	if ok {
+		return ok, nil
+	}
+
+	// check from db
+
+	ur, err := d.GetFriendByStatus(ctx, uid, friendUID, int(friendpb.FriendStatus_FRIEND))
+	if err != nil {
+		return false, err
+	}
+
+	if ur == nil {
+		return false, nil
+	}
+
+	ur2, err := d.GetFriendByStatus(ctx, friendUID, uid, int(friendpb.FriendStatus_FRIEND))
+	if err != nil {
+		return false, err
+	}
+
+	if ur2 == nil {
+		return false, nil
+	}
+
+	// set cache
+	err = d.SetFriendStatusToCache(ctx, uid, friendUID)
+	if err != nil {
+		log.Error("set friend status to cache error", "err", err)
+	}
+
+	return true, nil
 }
 
 // GetFriendStatusFromCache get friend status from cache.
@@ -94,7 +151,7 @@ func (d *FriendDao) CreateFriend(ctx context.Context, friend *data.Friend) error
 }
 
 func (d *FriendDao) UpdateFriendStatus(ctx context.Context, userRelation *data.Friend) error {
-	tx := db.GetDBFromCtx(ctx).Model(userRelation).UpdateColumns(map[string]interface{}{
+	tx := db.GetDBFromCtx(ctx).Model(userRelation).Updates(map[string]interface{}{
 		"updated_at": time.Now().Unix(),
 		"status":     userRelation.Status,
 	})

@@ -248,6 +248,10 @@ func (s *FriendService) ConfirmFriendRequest(ctx context.Context, req *friendpb.
 		return nil, err
 	}
 
+	if me != nil && me.IsFriend() && friend != nil && friend.IsFriend() {
+		return responsepb.Code_OK.BaseResponse(), nil
+	}
+
 	// big transaction here
 	err = db.Transaction(ctx, func(ctx2 context.Context) error {
 		// step 1: update friend request status to accepted
@@ -359,7 +363,7 @@ func (s *FriendService) QueryFriendRequestList(ctx context.Context, req *friendp
 
 func (s *FriendService) IsFriend(ctx context.Context, req *friendpb.BaseFriendRequest) (
 	*responsepb.BaseResponse, error) {
-	ok, err := s.friendDao.GetFriendStatusFromCache(ctx, req.GetUid(), req.GetFriendUid())
+	ok, err := s.friendDao.CheckIsFriend(ctx, req.GetUid(), req.GetFriendUid())
 	if err != nil {
 		return responsepb.NewBaseResponseWithMessage(responsepb.Code_CacheError, err.Error()), nil
 	}
