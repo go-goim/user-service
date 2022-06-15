@@ -249,6 +249,11 @@ func (s *FriendService) ConfirmFriendRequest(ctx context.Context, req *friendpb.
 	}
 
 	if me != nil && me.IsFriend() && friend != nil && friend.IsFriend() {
+		fr.SetAccepted()
+		if err = s.friendRequestDao.UpdateFriendRequest(ctx, fr); err != nil {
+			return nil, err
+		}
+
 		return responsepb.Code_OK.BaseResponse(), nil
 	}
 
