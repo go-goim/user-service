@@ -64,3 +64,19 @@ CREATE TABLE IF NOT EXISTS goim.friend_request (
     primary key (`id`),
     unique key (`uid`, `friend_uid`) COMMENT 'unique key for uid and friend_uid'
 ) auto_increment = 10000 engine = innodb charset = utf8mb4;
+
+-- define session table based on go structure Session in current directory
+DROP TABLE IF EXISTS goim.session;
+
+CREATE TABLE IF NOT EXISTS goim.session (
+    `id` bigint not null auto_increment,
+    `from_uid` varchar(64) not null, -- 22 bytes of uuid
+    `to_uid` varchar(64) not null, -- 22 bytes of uuid
+    `status` tinyint not null default 0 COMMENT '0: normal; 1: deleted;',
+    `type` tinyint not null default 0 COMMENT '0: single chat; 1: group chat;',
+    `created_by` varchar(64) not null, -- 22 bytes of uuid
+    `created_at` int not null default 0,
+    `updated_at` int not null default 0,
+    primary key (`id`),
+    unique key (`from_uid`, `to_uid`) COMMENT 'unique key for from_uid and to_uid'
+) auto_increment = 10000 engine = innodb charset = utf8mb4;

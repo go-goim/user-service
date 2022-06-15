@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	responsepb "github.com/go-goim/api/transport/response"
 	friendpb "github.com/go-goim/api/user/friend/v1"
+	sessionpb "github.com/go-goim/api/user/session/v1"
 
 	"github.com/go-goim/core/pkg/db"
 	"github.com/go-goim/core/pkg/log"
@@ -21,6 +23,7 @@ type FriendService struct {
 	friendDao        *dao.FriendDao
 	friendRequestDao *dao.FriendRequestDao
 	userDao          *dao.UserDao
+	sessionDao       *dao.SessionDao
 	friendpb.UnimplementedFriendServiceServer
 }
 
@@ -36,6 +39,7 @@ func GetFriendService() *FriendService {
 			friendDao:        dao.GetUserRelationDao(),
 			friendRequestDao: dao.GetFriendRequestDao(),
 			userDao:          dao.GetUserDao(),
+			sessionDao:       dao.GetSessionDao(),
 		}
 	})
 	return friendService
@@ -500,4 +504,83 @@ func (s *FriendService) onUnblock(ctx context.Context, uid, friendUID string) er
 	}
 
 	return nil
+}
+
+/*
+* handle friend send message ability
+ */
+
+func (s *FriendService) CheckSendMessageAbility(ctx context.Context, req *friendpb.CheckSendMessageAbilityRequest) (
+	*friendpb.CheckSendMessageAbilityResponse, error) {
+	rsp := &friendpb.CheckSendMessageAbilityResponse{
+		Response: responsepb.Code_OK.BaseResponse(),
+	}
+
+	if req.GetSessionType() == sessionpb.SessionType_GroupChat {
+		// todo: support group chat later.
+		return rsp, nil
+	}
+
+	sessionID, err := s.checkFriendAndSession(ctx, req.GetFromUid(), req.GetToUid(), req.GetSessionType())
+	if err != nil {
+		rsp.Response = responsepb.NewBaseResponseWithError(err)
+		return rsp, nil
+	}
+
+	rsp.SessionId = &sessionID
+	return rsp, nil
+}
+
+func (s *FriendService) checkFriendAndSession(ctx context.Context, fromUId, toUID string,
+	sessionType sessionpb.SessionType) (int64, error) {
+	// check friend
+	rsp, err := s.IsFriend(ctx, &friendpb.BaseFriendRequest{
+		Uid:       fromUId,
+		FriendUid: toUID,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	if !rsp.Success() {
+		return 0, rsp
+	}
+
+	var (
+		tryCount = 0
+	)
+
+CHECK:
+	if tryCount > 1 {
+		return 0, errors.New("get/create session failed")
+	}
+	// check session
+	session, err := s.sessionDao.GetSessionByUID(ctx, fromUId, toUID)
+	if err != nil {
+		return 0, err
+	}
+
+	if session == nil {
+		// create session
+		switch sessionType {
+		case sessionpb.SessionType_GroupChat:
+			session, err = s.sessionDao.CreateGroupSession(ctx, fromUId, toUID)
+		case sessionpb.SessionType_SingleChat:
+			session, err = s.sessionDao.CreateSingleChatSession(ctx, fromUId, toUID)
+		default:
+			return 0, errors.New("invalid session type")
+		}
+		if err != nil {
+			return 0, err
+		}
+		// err nil
+		if session == nil {
+			tryCount++
+			// 并发导致 查询时不存在然后又另外一个请求创建了session,从而这里创建时时报 duplicate 错误
+			// 尝试再获取一次,如果还是不存在,则返回错误
+			goto CHECK
+		}
+	}
+
+	return session.ID, nil
 }

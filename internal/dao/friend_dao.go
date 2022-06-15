@@ -2,7 +2,6 @@ package dao
 
 import (
 	"context"
-	"sort"
 	"sync"
 	"time"
 
@@ -104,7 +103,10 @@ func (d *FriendDao) CheckIsFriend(ctx context.Context, uid, friendUID string) (b
 // cache value: 1 as constant.
 func (d *FriendDao) GetFriendStatusFromCache(ctx context.Context, uid, friendUID string) (bool, error) {
 	keys := []string{uid, friendUID}
-	sort.Strings(keys)
+	if uid > friendUID {
+		keys = []string{friendUID, uid}
+	}
+
 	key := "friend_status:" + keys[0] + ":" + keys[1]
 	_, err := cache.Get(ctx, key)
 	if err != nil {
@@ -121,14 +123,18 @@ func (d *FriendDao) GetFriendStatusFromCache(ctx context.Context, uid, friendUID
 // SetFriendStatusToCache set friend status to cache.
 func (d *FriendDao) SetFriendStatusToCache(ctx context.Context, uid, friendUID string) error {
 	keys := []string{uid, friendUID}
-	sort.Strings(keys)
+	if uid > friendUID {
+		keys = []string{friendUID, uid}
+	}
 	key := "friend_status:" + keys[0] + ":" + keys[1]
 	return cache.Set(ctx, key, []byte("1"), 0) // 0 means no expire time.
 }
 
 func (d *FriendDao) DeleteFriendStatusFromCache(ctx context.Context, uid, friendUID string) error {
 	keys := []string{uid, friendUID}
-	sort.Strings(keys)
+	if uid > friendUID {
+		keys = []string{friendUID, uid}
+	}
 	key := "friend_status:" + keys[0] + ":" + keys[1]
 	return cache.Delete(ctx, key)
 }
