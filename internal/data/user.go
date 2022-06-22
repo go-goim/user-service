@@ -62,3 +62,13 @@ func (u *User) ToProtoUserInternal() *userv1.UserInternal {
 		UpdatedAt: u.UpdatedAt,
 	}
 }
+
+func (u *User) ToProto() *userv1.User {
+	return &userv1.User{
+		Uid:    u.UID,
+		Name:   u.Name,
+		Email:  u.Email,
+		Phone:  u.Phone,
+		Avatar: u.Avatar,
+	}
+}

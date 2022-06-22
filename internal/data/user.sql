@@ -80,3 +80,34 @@ CREATE TABLE IF NOT EXISTS goim.session (
     primary key (`id`),
     unique key (`from_uid`, `to_uid`) COMMENT 'unique key for from_uid and to_uid'
 ) auto_increment = 10000 engine = innodb charset = utf8mb4;
+
+-- define group table based on go structure Group in current directory
+DROP TABLE IF EXISTS goim.group;
+
+CREATE TABLE IF NOT EXISTS goim.group (
+    `id` bigint not null auto_increment,
+    `gid` varchar(64) not null, -- g_ + 22 bytes of uuid
+    `name` varchar(64) not null, -- group name
+    `description` varchar(255) not null, -- group description
+    `avatar` varchar(255) not null, -- group avatar
+    `owner_uid` varchar(64) not null, -- 22 bytes of uuid
+    `created_at` int not null default 0,
+    `updated_at` int not null default 0,
+    primary key (`id`),
+    unique key (`gid`) COMMENT 'unique key for gid'
+) auto_increment = 10000 engine = innodb charset = utf8mb4;
+
+-- define group member table based on go structure GroupMember in current directory
+DROP TABLE IF EXISTS goim.group_member;
+
+CREATE TABLE IF NOT EXISTS goim.group_member (
+    `id` bigint not null auto_increment,
+    `gid` varchar(64) not null, -- g_ + 22 bytes of uuid
+    `uid` varchar(64) not null, -- 22 bytes of uuid
+    `type` tinyint not null default 0 COMMENT '0: owner; 1: member',
+    `status` tinyint not null default 0 COMMENT '0: normal; 1: silent;',
+    `created_at` int not null default 0,
+    `updated_at` int not null default 0,
+    primary key (`id`),
+    unique key (`gid`, `uid`) COMMENT 'unique key for gid and uid'
+) auto_increment = 10000 engine = innodb charset = utf8mb4;
