@@ -59,9 +59,9 @@ func (d *SessionDao) GetSessionByUID(ctx context.Context, fromUID, toUID string)
 	return session, nil
 }
 
-func (d *SessionDao) CreateGroupSession(ctx context.Context, uid, groupID string, ignoreDuplicate ...bool) (
+func (d *SessionDao) CreateGroupSession(ctx context.Context, groupID string, ignoreDuplicate ...bool) (
 	*data.Session, error) {
-	session, err := d.createSession(ctx, uid, groupID, sessionpb.SessionType_GroupChat)
+	session, err := d.createSession(ctx, groupID, groupID, sessionpb.SessionType_GroupChat)
 	if err == nil {
 		return session, nil
 	}

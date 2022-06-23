@@ -99,3 +99,12 @@ func (d *GroupMemberDao) DeleteGroupMember(ctx context.Context, groupMember *dat
 
 	return nil
 }
+
+func (d *GroupMemberDao) DeleteGroupMembers(ctx context.Context, gid string, uids []string) error {
+	tx := db.GetDBFromCtx(ctx).Where("gid = ? AND uid in (?)", gid, uids).Delete(&data.GroupMember{})
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	return nil
+}

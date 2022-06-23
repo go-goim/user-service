@@ -22,6 +22,7 @@ type GroupService struct {
 }
 
 var (
+	_                grouppb.GroupServiceServer = &GroupService{}
 	groupService     *GroupService
 	groupServiceOnce sync.Once
 )
@@ -326,4 +327,82 @@ func (s *GroupService) AddGroupMember(ctx context.Context, req *grouppb.AddGroup
 
 	rsp.Added = int32(len(newUIDs))
 	return rsp, nil
+}
+
+func (s *GroupService) RemoveGroupMember(ctx context.Context, req *grouppb.RemoveGroupMemberRequest) (
+	*grouppb.RemoveGroupMemberResponse, error) {
+	rsp := &grouppb.RemoveGroupMemberResponse{
+		Response: responsepb.Code_OK.BaseResponse(),
+	}
+
+	group, err := s.groupDao.GetGroupByGID(ctx, req.GetGid())
+	if err != nil {
+		rsp.Response = responsepb.NewBaseResponseWithError(err)
+		return rsp, nil
+	}
+
+	if group == nil {
+		rsp.Response = responsepb.Code_GroupNotExist.BaseResponse()
+		return rsp, nil
+	}
+
+	uids, err := s.groupMemberDao.ListInGroupUIDs(ctx, group.GID, req.GetUid())
+	if err != nil {
+		rsp.Response = responsepb.NewBaseResponseWithError(err)
+		return rsp, nil
+	}
+
+	// if all users are not in the group, return
+	if len(uids) == 0 {
+		return rsp, nil
+	}
+
+	// filter out the users not in the group
+	var (
+		inGroupUIDs    = util.NewSet[string]().Add(uids...)
+		needRemoveUIDs []string
+	)
+
+	for _, uid := range req.GetUid() {
+		if inGroupUIDs.Contains(uid) {
+			needRemoveUIDs = append(needRemoveUIDs, uid)
+		}
+	}
+
+	// delete group members and decrease the member count
+	err = db.Transaction(ctx, func(ctx2 context.Context) error {
+		// decrease the member count first
+		success, err := s.groupDao.DecrGroupMemberCount(ctx2, group.GID, uint(len(needRemoveUIDs)))
+		if err != nil {
+			return err
+		}
+
+		if !success {
+			return responsepb.Code_GroupLimitExceed.BaseResponse()
+		}
+
+		if err := s.groupMemberDao.DeleteGroupMembers(ctx2, group.GID, needRemoveUIDs); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		rsp.Response = responsepb.NewBaseResponseWithError(err)
+		return rsp, nil
+	}
+
+	rsp.Removed = int32(len(needRemoveUIDs))
+	return rsp, nil
+}
+
+func (s *GroupService) isInGroup(ctx context.Context, gid, uid string) (bool, error) {
+	// todo: check cache first
+	gm, err := s.groupMemberDao.GetGroupMemberByGIDUID(ctx, gid, uid)
+	if err != nil {
+		return false, err
+	}
+
+	return gm != nil, nil
 }
