@@ -96,9 +96,9 @@ func (d *GroupDao) DeleteGroup(ctx context.Context, group *data.Group) error {
 // IncrGroupMemberCount incr group member count by given increase.
 // It will check if after increased group member count is greater than max group member count,
 // if so, it will return false.
-func (d *GroupDao) IncrGroupMemberCount(ctx context.Context, gid string, increase uint) (bool, error) {
-	tx := db.GetDBFromCtx(ctx).Model(&data.Group{}).Where("gid = ?", gid).
-		Where("member_count + ? > max_member_count", increase).
+func (d *GroupDao) IncrGroupMemberCount(ctx context.Context, g *data.Group, increase uint) (bool, error) {
+	tx := db.GetDBFromCtx(ctx).Model(&data.Group{}).Where("gid = ?", g.GID).
+		Where("member_count + ? <= ?", increase, g.MaxMembers).
 		Update("member_count", gorm.Expr("member_count + ?", increase))
 	if tx.Error != nil {
 		// not found means group member count is greater than max group member count,
@@ -115,8 +115,8 @@ func (d *GroupDao) IncrGroupMemberCount(ctx context.Context, gid string, increas
 // DecrGroupMemberCount decr group member count by given decrease.
 // It will check if after decreased group member count is less than 0,
 // if so, it will return false.
-func (d *GroupDao) DecrGroupMemberCount(ctx context.Context, gid string, decrease uint) (bool, error) {
-	tx := db.GetDBFromCtx(ctx).Model(&data.Group{}).Where("gid = ?", gid).
+func (d *GroupDao) DecrGroupMemberCount(ctx context.Context, g *data.Group, decrease uint) (bool, error) {
+	tx := db.GetDBFromCtx(ctx).Model(&data.Group{}).Where("gid = ?", g.GID).
 		Where("member_count - ? >= 0", decrease).
 		Update("member_count", gorm.Expr("member_count - ?", decrease))
 	if tx.Error != nil {

@@ -8,8 +8,8 @@ import (
 // GroupMember data stored in mysql.
 type GroupMember struct {
 	ID        int64                      `gorm:"primary_key"`
-	GID       string                     `gorm:"type:varchar(64);not null"`
-	UID       string                     `gorm:"type:varchar(64);not null"`
+	GID       string                     `gorm:"type:varchar(64);not null;column:gid"`
+	UID       string                     `gorm:"type:varchar(64);not null;column:uid"`
 	Type      grouppb.GroupMember_Type   `gorm:"type:tinyint(1);not null"`
 	Status    grouppb.GroupMember_Status `gorm:"type:tinyint(1);not null"`
 	CreatedAt int64                      `gorm:"type:bigint(20);not null;autoCreateTime"`

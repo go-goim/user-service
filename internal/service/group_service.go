@@ -82,10 +82,9 @@ func (s *GroupService) GetGroup(ctx context.Context, req *grouppb.GetGroupReques
 
 	for _, u := range userList {
 		gm := &grouppb.GroupMember{
-			Group: rsp.Group,
-			Gid:   group.GID,
-			Uid:   u.UID,
-			User:  u.ToProto(),
+			Gid:  group.GID,
+			Uid:  u.UID,
+			User: u.ToProto(),
 		}
 
 		if temp, ok := gmMap[u.UID]; ok {
@@ -138,12 +137,24 @@ func (s *GroupService) CreateGroup(ctx context.Context, req *grouppb.CreateGroup
 		Description: req.GetDescription(),
 		Avatar:      req.GetAvatar(),
 		OwnerUID:    req.GetOwnerUid(),
+		MaxMembers:  500, // todo: use config
+		MemberCount: len(req.GetMembersUid()) + 1,
 	}
 
-	gm := &data.GroupMember{
+	var members = make([]*data.GroupMember, 0, len(req.GetMembersUid())+1)
+
+	members = append(members, &data.GroupMember{
 		GID:  group.GID,
 		UID:  group.OwnerUID,
-		Type: grouppb.GroupMember_TypeMember,
+		Type: grouppb.GroupMember_TypeOwner,
+	})
+
+	for _, uid := range req.GetMembersUid() {
+		members = append(members, &data.GroupMember{
+			GID:  group.GID,
+			UID:  uid,
+			Type: grouppb.GroupMember_TypeMember,
+		})
 	}
 
 	rsp := &grouppb.CreateGroupResponse{
@@ -155,7 +166,7 @@ func (s *GroupService) CreateGroup(ctx context.Context, req *grouppb.CreateGroup
 			return err
 		}
 
-		if err := s.groupMemberDao.CreateGroupMember(ctx2, gm); err != nil {
+		if err := s.groupMemberDao.CreateGroupMember(ctx2, members...); err != nil {
 			return err
 		}
 
@@ -304,7 +315,7 @@ func (s *GroupService) AddGroupMember(ctx context.Context, req *grouppb.AddGroup
 	// create group members and increase the member count
 	err = db.Transaction(ctx, func(ctx2 context.Context) error {
 		// increase the member count first
-		success, err := s.groupDao.IncrGroupMemberCount(ctx2, group.GID, uint(len(newUIDs)))
+		success, err := s.groupDao.IncrGroupMemberCount(ctx2, group, uint(len(newUIDs)))
 		if err != nil {
 			return err
 		}
@@ -372,7 +383,7 @@ func (s *GroupService) RemoveGroupMember(ctx context.Context, req *grouppb.Remov
 	// delete group members and decrease the member count
 	err = db.Transaction(ctx, func(ctx2 context.Context) error {
 		// decrease the member count first
-		success, err := s.groupDao.DecrGroupMemberCount(ctx2, group.GID, uint(len(needRemoveUIDs)))
+		success, err := s.groupDao.DecrGroupMemberCount(ctx2, group, uint(len(needRemoveUIDs)))
 		if err != nil {
 			return err
 		}

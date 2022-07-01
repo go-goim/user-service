@@ -8,14 +8,14 @@ import (
 // Group data stored in mysql.
 type Group struct {
 	ID          int64               `gorm:"primary_key"`
-	GID         string              `gorm:"type:varchar(64);unique_index;not null"`
+	GID         string              `gorm:"type:varchar(64);unique_index;not null;column:gid"`
 	Name        string              `gorm:"type:varchar(32);not null"`
 	Description string              `gorm:"type:varchar(128);not null"`
 	Avatar      string              `gorm:"type:varchar(128);not null"`
 	MaxMembers  int                 `gorm:"type:int(11);not null"`
 	MemberCount int                 `gorm:"type:int(11);not null"`
 	Status      grouppb.GroupStatus `gorm:"type:tinyint(1);not null"`
-	OwnerUID    string              `gorm:"type:varchar(64);not null"`
+	OwnerUID    string              `gorm:"type:varchar(64);not null;column:owner_uid"`
 	CreatedAt   int64               `gorm:"type:bigint(20);not null;autoCreateTime"`
 	UpdatedAt   int64               `gorm:"type:bigint(20);not null;autoUpdateTime"`
 }

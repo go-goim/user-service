@@ -91,6 +91,9 @@ CREATE TABLE IF NOT EXISTS goim.group (
     `description` varchar(255) not null, -- group description
     `avatar` varchar(255) not null, -- group avatar
     `owner_uid` varchar(64) not null, -- 22 bytes of uuid
+    `max_members` int not null default 0, -- max members in group
+    `member_count` int not null default 0, -- current members in group
+    `status` tinyint not null default 0 COMMENT '0: normal; 1: silent;',
     `created_at` int not null default 0,
     `updated_at` int not null default 0,
     primary key (`id`),
