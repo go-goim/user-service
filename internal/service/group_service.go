@@ -409,11 +409,14 @@ func (s *GroupService) RemoveGroupMember(ctx context.Context, req *grouppb.Remov
 }
 
 func (s *GroupService) isInGroup(ctx context.Context, gid, uid string) (bool, error) {
-	// todo: check cache first
-	gm, err := s.groupMemberDao.GetGroupMemberByGIDUID(ctx, gid, uid)
+	gm, err := s.groupMemberDao.IsMemberOfGroup(ctx, gid, uid)
 	if err != nil {
 		return false, err
 	}
 
-	return gm != nil, nil
+	if gm == nil {
+		return false, nil
+	}
+
+	return gm.Status == grouppb.GroupMember_StatusActive, nil
 }
