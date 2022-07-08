@@ -3,15 +3,10 @@ module github.com/go-goim/user-service
 go 1.18
 
 require (
-	github.com/go-goim/api v0.0.4
-	github.com/go-goim/core v0.0.3
+	github.com/go-goim/api v0.0.5
+	github.com/go-goim/core v0.0.5
 	github.com/go-redis/redis/v8 v8.11.5
 	gorm.io/gorm v1.23.7
-)
-
-replace (
-	github.com/go-goim/api => ../api
-	github.com/go-goim/core => ../core
 )
 
 require (

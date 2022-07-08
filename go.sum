@@ -91,6 +91,10 @@ github.com/fsnotify/fsnotify v1.5.1/go.mod h1:T3375wBYaZdLLcVNkcVbzGHY7f1l/uK5T5
 github.com/fsnotify/fsnotify v1.5.4 h1:jRbGcIw6P2Meqdwuo0H1p6JVLbL5DHKAKlYndzMwVZI=
 github.com/fsnotify/fsnotify v1.5.4/go.mod h1:OVB6XrOHzAwXMpEM7uPOzcehqUV2UqJxmVXmkdnm1bU=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
+github.com/go-goim/api v0.0.5 h1:wOBJKX/FQJET4918le+Rz9I/FIRN9Pje/VX9wF9n2Z0=
+github.com/go-goim/api v0.0.5/go.mod h1:Sak5Z8VCYRPjKgl5EOEaHM/B4o5W4ekz5zgKIZ/xJTI=
+github.com/go-goim/core v0.0.5 h1:0xC8FcgNe1OEzkT01VgQN1g3w83saesUa69tJLv8RdA=
+github.com/go-goim/core v0.0.5/go.mod h1:Zk6dDc8shQ45xbRoX8B94228GImbg+iuMhguhk60ATI=
 github.com/go-kit/kit v0.8.0/go.mod h1:xBxKIO96dXMWWy0MnWVtmwkA9/13aqxPnvrjFYMA2as=
 github.com/go-kit/kit v0.9.0/go.mod h1:xBxKIO96dXMWWy0MnWVtmwkA9/13aqxPnvrjFYMA2as=
 github.com/go-kit/log v0.1.0/go.mod h1:zbhenjAZHb184qTLMA9ZjW7ThYL0H2mk7Q6pNt4vbaY=
