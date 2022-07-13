@@ -9,8 +9,8 @@ import (
 // If the session is group chat, the from_user_id and to_user_id are the both group id.
 type Session struct {
 	ID         int64                 `gorm:"primary_key"` // session id
-	FromUserID string                `gorm:"type:varchar(64);not null"`
-	ToUserID   string                `gorm:"type:varchar(64);not null"`
+	FromUserID string                `gorm:"type:varchar(64);not null;column:from_uid"`
+	ToUserID   string                `gorm:"type:varchar(64);not null;column:to_uid"`
 	Type       sessionpb.SessionType `gorm:"type:tinyint(1);not null"`  // 0: single chat, 1: group chat
 	CreatedBy  string                `gorm:"type:varchar(64);not null"` // user id who created the session
 	CreatedAt  int64                 `gorm:"type:bigint(20);not null;autoCreateTime"`

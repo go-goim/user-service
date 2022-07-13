@@ -47,7 +47,7 @@ func (d *SessionDao) GetSessionByUID(ctx context.Context, fromUID, toUID string)
 	}
 
 	session := &data.Session{}
-	err := db.GetDBFromCtx(ctx).Where("from_user_id = ? AND to_user_id = ?", fromUID, toUID).First(session).Error
+	err := db.GetDBFromCtx(ctx).Where("from_uid = ? AND to_uid = ?", fromUID, toUID).First(session).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
