@@ -4,9 +4,10 @@ import (
 	"context"
 
 	friendpb "github.com/go-goim/api/user/friend/v1"
+	grouppb "github.com/go-goim/api/user/group/v1"
 	userv1 "github.com/go-goim/api/user/v1"
-	"github.com/go-goim/core/pkg/cache"
 
+	"github.com/go-goim/core/pkg/cache"
 	"github.com/go-goim/core/pkg/cmd"
 	"github.com/go-goim/core/pkg/graceful"
 	"github.com/go-goim/core/pkg/log"
@@ -25,9 +26,9 @@ func Main() {
 		log.Fatal("InitApplication got err", "error", err)
 	}
 
-	// TODO: add registered grpc services to metadata in service registry.
 	userv1.RegisterUserServiceServer(application.GrpcSrv, service.GetUserService())
 	friendpb.RegisterFriendServiceServer(application.GrpcSrv, service.GetFriendService())
+	grouppb.RegisterGroupServiceServer(application.GrpcSrv, service.GetGroupService())
 
 	cache.SetGlobalCache(cache.NewRedisCache(application.Redis))
 

@@ -516,12 +516,32 @@ func (s *FriendService) CheckSendMessageAbility(ctx context.Context, req *friend
 		Response: responsepb.Code_OK.BaseResponse(),
 	}
 
-	if req.GetSessionType() == sessionpb.SessionType_GroupChat {
-		// todo: support group chat later.
-		return rsp, nil
+	// is friend
+	if req.GetSessionType() == sessionpb.SessionType_SingleChat {
+		ok, err := s.friendDao.CheckIsFriend(ctx, req.GetFromUid(), req.GetToUid())
+		if err != nil {
+			return nil, err
+		}
+
+		if !ok {
+			rsp.Response = responsepb.Code_RelationNotExist.BaseResponse()
+			return rsp, nil
+		}
 	}
 
-	sessionID, err := s.checkFriendAndSession(ctx, req.GetFromUid(), req.GetToUid(), req.GetSessionType())
+	if req.GetSessionType() == sessionpb.SessionType_GroupChat {
+		ok, err := GetGroupService().isInGroup(ctx, req.GetToUid(), req.GetFromUid())
+		if err != nil {
+			return nil, err
+		}
+
+		if !ok {
+			rsp.Response = responsepb.Code_RelationNotExist.BaseResponse()
+			return rsp, nil
+		}
+	}
+
+	sessionID, err := s.getSessionID(ctx, req.GetFromUid(), req.GetToUid(), req.GetSessionType())
 	if err != nil {
 		rsp.Response = responsepb.NewBaseResponseWithError(err)
 		return rsp, nil
@@ -531,21 +551,8 @@ func (s *FriendService) CheckSendMessageAbility(ctx context.Context, req *friend
 	return rsp, nil
 }
 
-func (s *FriendService) checkFriendAndSession(ctx context.Context, fromUId, toUID string,
-	sessionType sessionpb.SessionType) (int64, error) {
-	// check friend
-	rsp, err := s.IsFriend(ctx, &friendpb.BaseFriendRequest{
-		Uid:       fromUId,
-		FriendUid: toUID,
-	})
-	if err != nil {
-		return 0, err
-	}
-
-	if !rsp.Success() {
-		return 0, rsp
-	}
-
+func (s *FriendService) getSessionID(ctx context.Context, fromUId, toUID string, sessionType sessionpb.SessionType) (
+	int64, error) {
 	var (
 		tryCount = 0
 	)
@@ -554,32 +561,35 @@ CHECK:
 	if tryCount > 1 {
 		return 0, errors.New("get/create session failed")
 	}
+
 	// check session
 	session, err := s.sessionDao.GetSessionByUID(ctx, fromUId, toUID)
 	if err != nil {
 		return 0, err
 	}
 
+	if session != nil {
+		return session.ID, nil
+	}
+
+	// create session
+	switch sessionType {
+	case sessionpb.SessionType_GroupChat:
+		session, err = s.sessionDao.CreateGroupSession(ctx, toUID)
+	case sessionpb.SessionType_SingleChat:
+		session, err = s.sessionDao.CreateSingleChatSession(ctx, fromUId, toUID)
+	default:
+		return 0, errors.New("invalid session type")
+	}
+	if err != nil {
+		return 0, err
+	}
+	// err nil
 	if session == nil {
-		// create session
-		switch sessionType {
-		case sessionpb.SessionType_GroupChat:
-			session, err = s.sessionDao.CreateGroupSession(ctx, fromUId, toUID)
-		case sessionpb.SessionType_SingleChat:
-			session, err = s.sessionDao.CreateSingleChatSession(ctx, fromUId, toUID)
-		default:
-			return 0, errors.New("invalid session type")
-		}
-		if err != nil {
-			return 0, err
-		}
-		// err nil
-		if session == nil {
-			tryCount++
-			// 并发导致 查询时不存在然后又另外一个请求创建了session,从而这里创建时时报 duplicate 错误
-			// 尝试再获取一次,如果还是不存在,则返回错误
-			goto CHECK
-		}
+		tryCount++
+		// 并发导致 查询时不存在然后又另外一个请求创建了session,从而这里创建时时报 duplicate 错误
+		// 尝试再获取一次,如果还是不存在,则返回错误
+		goto CHECK
 	}
 
 	return session.ID, nil

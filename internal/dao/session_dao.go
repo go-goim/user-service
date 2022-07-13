@@ -47,7 +47,7 @@ func (d *SessionDao) GetSessionByUID(ctx context.Context, fromUID, toUID string)
 	}
 
 	session := &data.Session{}
-	err := db.GetDBFromCtx(ctx).Where("from_user_id = ? AND to_user_id = ?", fromUID, toUID).First(session).Error
+	err := db.GetDBFromCtx(ctx).Where("from_uid = ? AND to_uid = ?", fromUID, toUID).First(session).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -59,9 +59,9 @@ func (d *SessionDao) GetSessionByUID(ctx context.Context, fromUID, toUID string)
 	return session, nil
 }
 
-func (d *SessionDao) CreateGroupSession(ctx context.Context, uid, groupID string, ignoreDuplicate ...bool) (
+func (d *SessionDao) CreateGroupSession(ctx context.Context, groupID string, ignoreDuplicate ...bool) (
 	*data.Session, error) {
-	session, err := d.createSession(ctx, uid, groupID, sessionpb.SessionType_GroupChat)
+	session, err := d.createSession(ctx, groupID, groupID, sessionpb.SessionType_GroupChat)
 	if err == nil {
 		return session, nil
 	}
