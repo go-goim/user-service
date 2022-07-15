@@ -7,6 +7,7 @@ import (
 
 	responsepb "github.com/go-goim/api/transport/response"
 	userv1 "github.com/go-goim/api/user/v1"
+	"github.com/go-goim/core/pkg/types"
 
 	"github.com/go-goim/core/pkg/util"
 
@@ -35,13 +36,13 @@ func GetUserService() *UserService {
 	return userService
 }
 
-func (s *UserService) GetUser(ctx context.Context, req *userv1.GetUserInfoRequest) (*userv1.UserInternalResponse, error) {
-	user, err := s.userDao.GetUserByUID(ctx, req.GetUid())
+func (s *UserService) GetUser(ctx context.Context, req *userv1.GetUserInfoRequest) (*userv1.UserResponse, error) {
+	user, err := s.userDao.GetUserByUID(ctx, types.NewID(req.Uid))
 	if err != nil {
 		return nil, err
 	}
 
-	rsp := &userv1.UserInternalResponse{
+	rsp := &userv1.UserResponse{
 		Response: responsepb.Code_OK.BaseResponse(),
 	}
 
@@ -50,17 +51,17 @@ func (s *UserService) GetUser(ctx context.Context, req *userv1.GetUserInfoReques
 		return rsp, nil
 	}
 
-	rsp.User = user.ToProtoUserInternal()
+	rsp.User = user.ToProto()
 	return rsp, nil
 }
 
-func (s *UserService) QueryUser(ctx context.Context, req *userv1.QueryUserRequest) (*userv1.UserInternalResponse, error) {
+func (s *UserService) QueryUser(ctx context.Context, req *userv1.QueryUserRequest) (*userv1.UserResponse, error) {
 	user, err := s.loadUserByEmailOrPhone(ctx, req.GetEmail(), req.GetPhone())
 	if err != nil {
 		return nil, err
 	}
 
-	rsp := &userv1.UserInternalResponse{
+	rsp := &userv1.UserResponse{
 		Response: responsepb.Code_OK.BaseResponse(),
 	}
 
@@ -69,7 +70,7 @@ func (s *UserService) QueryUser(ctx context.Context, req *userv1.QueryUserReques
 		return rsp, nil
 	}
 
-	rsp.User = user.ToProtoUserInternal()
+	rsp.User = user.ToProto()
 	return rsp, nil
 }
 
@@ -98,19 +99,19 @@ func (s *UserService) loadUserByEmailOrPhone(ctx context.Context, email, phone s
 	return user, nil
 }
 
-func (s *UserService) CreateUser(ctx context.Context, req *userv1.CreateUserRequest) (*userv1.UserInternalResponse, error) {
+func (s *UserService) CreateUser(ctx context.Context, req *userv1.CreateUserRequest) (*userv1.UserResponse, error) {
 	user, err := s.loadUserByEmailOrPhone(ctx, req.GetEmail(), req.GetPhone())
 	if err != nil {
 		return nil, err
 	}
 
-	rsp := &userv1.UserInternalResponse{
+	rsp := &userv1.UserResponse{
 		Response: responsepb.Code_OK.BaseResponse(),
 	}
 
 	if user == nil {
 		user = &data.User{
-			UID:      util.UUID(),
+			UID:      types.GenerateID(),
 			Name:     req.GetName(),
 			Password: util.HashString(req.GetPassword()),
 		}
@@ -123,7 +124,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *userv1.CreateUserRequ
 			return nil, err
 		}
 
-		rsp.User = user.ToProtoUserInternal()
+		rsp.User = user.ToProto()
 		return rsp, nil
 	}
 
@@ -137,7 +138,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *userv1.CreateUserRequ
 			return nil, err
 		}
 
-		rsp.User = user.ToProtoUserInternal()
+		rsp.User = user.ToProto()
 		return rsp, nil
 	}
 
@@ -146,13 +147,13 @@ func (s *UserService) CreateUser(ctx context.Context, req *userv1.CreateUserRequ
 
 }
 
-func (s *UserService) UpdateUser(ctx context.Context, req *userv1.UpdateUserRequest) (*userv1.UserInternalResponse, error) {
-	user, err := s.userDao.GetUserByUID(ctx, req.GetUid())
+func (s *UserService) UpdateUser(ctx context.Context, req *userv1.UpdateUserRequest) (*userv1.UserResponse, error) {
+	user, err := s.userDao.GetUserByUID(ctx, types.NewID(req.Uid))
 	if err != nil {
 		return nil, err
 	}
 
-	rsp := &userv1.UserInternalResponse{
+	rsp := &userv1.UserResponse{
 		Response: responsepb.Code_OK.BaseResponse(),
 	}
 
@@ -177,6 +178,6 @@ func (s *UserService) UpdateUser(ctx context.Context, req *userv1.UpdateUserRequ
 		return nil, err
 	}
 
-	rsp.User = user.ToProtoUserInternal()
+	rsp.User = user.ToProto()
 	return rsp, nil
 }

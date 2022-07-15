@@ -2,17 +2,18 @@ package data
 
 import (
 	friendpb "github.com/go-goim/api/user/friend/v1"
+	"github.com/go-goim/core/pkg/types"
 )
 
 // FriendRequest is the model of fiend request table based on gorm, which is used for add friend request.
 // FriendRequest data stored in mysql.
 type FriendRequest struct {
-	ID        int64                        `gorm:"primary_key"`
-	UID       string                       `gorm:"column:uid"`
-	FriendUID string                       `gorm:"column:friend_uid"`
+	ID        uint64                       `gorm:"primary_key"`
+	UID       *types.ID                    `gorm:"column:uid"`
+	FriendUID *types.ID                    `gorm:"column:friend_uid"`
 	Status    friendpb.FriendRequestStatus `gorm:"column:status"`
-	CreatedAt int64                        `gorm:"column:created_at"`
-	UpdatedAt int64                        `gorm:"column:updated_at"`
+	CreatedAt int64                        `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt int64                        `gorm:"column:updated_at;autoUpdateTime"`
 }
 
 func (FriendRequest) TableName() string {
@@ -50,8 +51,8 @@ func (fr *FriendRequest) SetRejected() {
 func (fr *FriendRequest) ToProto() *friendpb.FriendRequest {
 	return &friendpb.FriendRequest{
 		Id:        fr.ID,
-		Uid:       fr.UID,
-		FriendUid: fr.FriendUID,
+		Uid:       fr.UID.Int64(),
+		FriendUid: fr.FriendUID.Int64(),
 		Status:    fr.Status,
 		CreatedAt: fr.CreatedAt,
 		UpdatedAt: fr.UpdatedAt,

@@ -2,22 +2,23 @@ package data
 
 import (
 	grouppb "github.com/go-goim/api/user/group/v1"
+	"github.com/go-goim/core/pkg/types"
 )
 
 // Group is the model of group table based on gorm, which contains group basic info.
 // Group data stored in mysql.
 type Group struct {
-	ID          int64               `gorm:"primary_key"`
-	GID         string              `gorm:"type:varchar(64);unique_index;not null;column:gid"`
-	Name        string              `gorm:"type:varchar(32);not null"`
-	Description string              `gorm:"type:varchar(128);not null"`
-	Avatar      string              `gorm:"type:varchar(128);not null"`
-	MaxMembers  int                 `gorm:"type:int(11);not null"`
-	MemberCount int                 `gorm:"type:int(11);not null"`
-	Status      grouppb.GroupStatus `gorm:"type:tinyint(1);not null"`
-	OwnerUID    string              `gorm:"type:varchar(64);not null;column:owner_uid"`
-	CreatedAt   int64               `gorm:"type:bigint(20);not null;autoCreateTime"`
-	UpdatedAt   int64               `gorm:"type:bigint(20);not null;autoUpdateTime"`
+	ID          uint64              `gorm:"primary_key"`
+	GID         *types.ID           `gorm:"column:gid"`
+	Name        string              `gorm:"column:name"`
+	Description string              `gorm:"column:description"`
+	Avatar      string              `gorm:"column:avatar"`
+	MaxMembers  int                 `gorm:"column:max_members"`
+	MemberCount int                 `gorm:"column:member_count"`
+	Status      grouppb.GroupStatus `gorm:"column:status"`
+	OwnerUID    *types.ID           `gorm:"column:owner_uid"`
+	CreatedAt   int64               `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt   int64               `gorm:"column:updated_at;autoUpdateTime"`
 }
 
 func (Group) TableName() string {
@@ -30,8 +31,7 @@ func (g *Group) IsSilent() bool {
 
 func (g *Group) ToProto() *grouppb.Group {
 	return &grouppb.Group{
-		Id:          g.ID,
-		Gid:         g.GID,
+		Gid:         g.GID.Int64(),
 		Name:        g.Name,
 		Description: g.Description,
 		Avatar:      g.Avatar,

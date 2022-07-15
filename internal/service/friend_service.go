@@ -2,20 +2,24 @@ package service
 
 import (
 	"context"
-	"errors"
 	"sync"
 
+	// api
+	messagev1 "github.com/go-goim/api/message/v1"
 	responsepb "github.com/go-goim/api/transport/response"
 	friendpb "github.com/go-goim/api/user/friend/v1"
-	sessionpb "github.com/go-goim/api/user/session/v1"
 
+	// core
 	"github.com/go-goim/core/pkg/db"
 	"github.com/go-goim/core/pkg/log"
+	"github.com/go-goim/core/pkg/types"
 	"github.com/go-goim/core/pkg/util/retry"
 
+	// internal
 	"github.com/go-goim/user-service/internal/app"
 	"github.com/go-goim/user-service/internal/dao"
 	"github.com/go-goim/user-service/internal/data"
+	internalUtil "github.com/go-goim/user-service/internal/util"
 )
 
 // FriendService implements friendpb.FriendServiceServer
@@ -23,7 +27,6 @@ type FriendService struct {
 	friendDao        *dao.FriendDao
 	friendRequestDao *dao.FriendRequestDao
 	userDao          *dao.UserDao
-	sessionDao       *dao.SessionDao
 	friendpb.UnimplementedFriendServiceServer
 }
 
@@ -39,7 +42,6 @@ func GetFriendService() *FriendService {
 			friendDao:        dao.GetUserRelationDao(),
 			friendRequestDao: dao.GetFriendRequestDao(),
 			userDao:          dao.GetUserDao(),
-			sessionDao:       dao.GetSessionDao(),
 		}
 	})
 	return friendService
@@ -49,9 +51,13 @@ func GetFriendService() *FriendService {
  * handle friend request logic
  */
 
-func (s *FriendService) AddFriend(ctx context.Context, req *friendpb.AddFriendRequest) (
+func (s *FriendService) AddFriend(ctx context.Context, req *friendpb.BaseFriendRequest) (
 	*friendpb.AddFriendResponse, error) {
-	friendUser, err := s.userDao.GetUserByUID(ctx, req.GetFriendUid())
+	var (
+		uid  = types.NewID(req.Uid)
+		fuid = types.NewID(req.FriendUid)
+	)
+	friendUser, err := s.userDao.GetUserByUID(ctx, fuid)
 	if err != nil {
 		return nil, err
 	}
@@ -66,12 +72,12 @@ func (s *FriendService) AddFriend(ctx context.Context, req *friendpb.AddFriendRe
 		return rsp, nil
 	}
 
-	me, err := s.friendDao.GetFriend(ctx, req.GetUid(), friendUser.UID)
+	me, err := s.friendDao.GetFriend(ctx, uid, friendUser.UID)
 	if err != nil {
 		return nil, err
 	}
 
-	friend, err := s.friendDao.GetFriend(ctx, friendUser.UID, req.GetUid())
+	friend, err := s.friendDao.GetFriend(ctx, friendUser.UID, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -92,8 +98,8 @@ func (s *FriendService) AddFriend(ctx context.Context, req *friendpb.AddFriendRe
 	}
 
 	base := &friendpb.BaseFriendRequest{
-		Uid:       req.GetUid(),
-		FriendUid: friendUser.UID,
+		Uid:       req.Uid,
+		FriendUid: friendUser.UID.Int64(),
 	}
 	// send friend request
 	err = s.sendFriendRequest(ctx, base, rsp)
@@ -157,8 +163,12 @@ func (s *FriendService) addAutomatically(ctx context.Context, me, friend *data.F
 // me has not blocked the friend and may have relation with the friend(no data or status in [friend, stranger])
 func (s *FriendService) sendFriendRequest(ctx context.Context, req *friendpb.BaseFriendRequest,
 	rsp *friendpb.AddFriendResponse) error {
+	var (
+		uid  = types.NewID(req.Uid)
+		fuid = types.NewID(req.FriendUid)
+	)
 	// load old friend request
-	fr, err := s.friendRequestDao.GetFriendRequest(ctx, req.GetUid(), req.GetFriendUid())
+	fr, err := s.friendRequestDao.GetFriendRequest(ctx, uid, fuid)
 	if err != nil {
 		return err
 	}
@@ -166,8 +176,8 @@ func (s *FriendService) sendFriendRequest(ctx context.Context, req *friendpb.Bas
 	// if the friend request is not exist, create new one
 	if fr == nil {
 		fr = &data.FriendRequest{
-			UID:       req.GetUid(),
-			FriendUID: req.GetFriendUid(),
+			UID:       types.NewID(req.Uid),
+			FriendUID: types.NewID(req.FriendUid),
 			Status:    friendpb.FriendRequestStatus_REQUESTED,
 		}
 
@@ -208,9 +218,9 @@ func (s *FriendService) sendFriendRequest(ctx context.Context, req *friendpb.Bas
 	return nil
 }
 
-func (s *FriendService) ConfirmFriendRequest(ctx context.Context, req *friendpb.ConfirmFriendRequestReq) (
+func (s *FriendService) ConfirmFriendRequest(ctx context.Context, req *friendpb.ConfirmFriendRequestRequest) (
 	*responsepb.BaseResponse, error) {
-	fr, err := s.friendRequestDao.GetFriendRequestByID(ctx, req.GetFriendRequestId())
+	fr, err := s.friendRequestDao.GetFriendRequestByID(ctx, req.FriendRequestId)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +230,7 @@ func (s *FriendService) ConfirmFriendRequest(ctx context.Context, req *friendpb.
 	}
 
 	// check if the friend request is send to me
-	if fr.FriendUID != req.GetUid() {
+	if fr.FriendUID.Int64() != req.Uid {
 		return responsepb.Code_FriendRequestNotExist.BaseResponse(), nil
 	}
 
@@ -231,7 +241,7 @@ func (s *FriendService) ConfirmFriendRequest(ctx context.Context, req *friendpb.
 			"current friend request status cannot be confirmed"), nil
 	}
 
-	if req.GetAction() == friendpb.ConfirmFriendRequestAction_REJECT {
+	if req.Action == friendpb.ConfirmFriendRequestAction_REJECT {
 		fr.SetRejected()
 		if err = s.friendRequestDao.UpdateFriendRequest(ctx, fr); err != nil {
 			return nil, err
@@ -310,7 +320,7 @@ func (s *FriendService) ConfirmFriendRequest(ctx context.Context, req *friendpb.
 
 }
 
-func (s *FriendService) createOrSetFriend(ctx context.Context, uid, friendUID string, f *data.Friend) error {
+func (s *FriendService) createOrSetFriend(ctx context.Context, uid, friendUID *types.ID, f *data.Friend) error {
 	if f != nil {
 		f.SetFriend()
 		return s.friendDao.UpdateFriendStatus(ctx, f)
@@ -327,7 +337,11 @@ func (s *FriendService) createOrSetFriend(ctx context.Context, uid, friendUID st
 
 func (s *FriendService) GetFriendRequest(ctx context.Context, req *friendpb.BaseFriendRequest) (
 	*friendpb.GetFriendRequestResponse, error) {
-	fr, err := s.friendRequestDao.GetFriendRequest(ctx, req.GetUid(), req.GetFriendUid())
+	var (
+		uid  = types.NewID(req.Uid)
+		fuid = types.NewID(req.FriendUid)
+	)
+	fr, err := s.friendRequestDao.GetFriendRequest(ctx, uid, fuid)
 	if err != nil {
 		return nil, err
 	}
@@ -348,8 +362,11 @@ func (s *FriendService) GetFriendRequest(ctx context.Context, req *friendpb.Base
 
 func (s *FriendService) QueryFriendRequestList(ctx context.Context, req *friendpb.QueryFriendRequestListRequest) (
 	*friendpb.QueryFriendRequestListResponse, error) {
+	var (
+		uid = types.NewID(req.Uid)
+	)
 
-	frList, err := s.friendRequestDao.GetFriendRequests(ctx, req.GetUid(), int(req.GetStatus()))
+	frList, err := s.friendRequestDao.GetFriendRequests(ctx, uid, int(req.Status))
 	if err != nil {
 		return nil, err
 	}
@@ -372,7 +389,7 @@ func (s *FriendService) QueryFriendRequestList(ctx context.Context, req *friendp
 
 func (s *FriendService) IsFriend(ctx context.Context, req *friendpb.BaseFriendRequest) (
 	*responsepb.BaseResponse, error) {
-	ok, err := s.friendDao.CheckIsFriend(ctx, req.GetUid(), req.GetFriendUid())
+	ok, err := s.friendDao.CheckIsFriend(ctx, types.NewID(req.Uid), types.NewID(req.FriendUid))
 	if err != nil {
 		return responsepb.NewBaseResponseWithMessage(responsepb.Code_CacheError, err.Error()), nil
 	}
@@ -386,7 +403,7 @@ func (s *FriendService) IsFriend(ctx context.Context, req *friendpb.BaseFriendRe
 
 func (s *FriendService) GetFriend(ctx context.Context, req *friendpb.BaseFriendRequest) (
 	*friendpb.GetFriendResponse, error) {
-	f, err := s.friendDao.GetFriend(ctx, req.GetUid(), req.GetFriendUid())
+	f, err := s.friendDao.GetFriend(ctx, types.NewID(req.Uid), types.NewID(req.FriendUid))
 	if err != nil {
 		return nil, err
 	}
@@ -404,7 +421,7 @@ func (s *FriendService) GetFriend(ctx context.Context, req *friendpb.BaseFriendR
 
 func (s *FriendService) QueryFriendList(ctx context.Context, req *friendpb.QueryFriendListRequest) (
 	*friendpb.QueryFriendListResponse, error) {
-	friends, err := s.friendDao.GetFriends(ctx, req.GetUid())
+	friends, err := s.friendDao.GetFriends(ctx, types.NewID(req.Uid))
 	if err != nil {
 		return nil, err
 	}
@@ -413,8 +430,8 @@ func (s *FriendService) QueryFriendList(ctx context.Context, req *friendpb.Query
 		rsp = &friendpb.QueryFriendListResponse{
 			Response: responsepb.Code_OK.BaseResponse(),
 		}
-		friendUIDList = make([]string, len(friends))
-		friendMap     = make(map[string]*data.User)
+		friendUIDList = make([]*types.ID, len(friends))
+		friendMap     = make(map[int64]*data.User)
 	)
 	for i, f := range friends {
 		rsp.FriendList = append(rsp.FriendList, f.ToProtoFriend())
@@ -428,7 +445,7 @@ func (s *FriendService) QueryFriendList(ctx context.Context, req *friendpb.Query
 	}
 
 	for i, friendInfo := range friendInfoList {
-		friendMap[friendInfo.UID] = friendInfoList[i]
+		friendMap[friendInfo.UID.Int64()] = friendInfoList[i]
 	}
 
 	for _, ur := range rsp.FriendList {
@@ -443,8 +460,11 @@ func (s *FriendService) QueryFriendList(ctx context.Context, req *friendpb.Query
 
 func (s *FriendService) UpdateFriendStatus(ctx context.Context, req *friendpb.UpdateFriendStatusRequest) (
 	*responsepb.BaseResponse, error) {
-	info := req.GetInfo()
-	f, err := s.friendDao.GetFriend(ctx, info.GetUid(), info.GetFriendUid())
+	var (
+		uid  = types.NewID(req.Info.Uid)
+		fuid = types.NewID(req.Info.FriendUid)
+	)
+	f, err := s.friendDao.GetFriend(ctx, uid, fuid)
 	if err != nil {
 		return nil, err
 	}
@@ -453,32 +473,32 @@ func (s *FriendService) UpdateFriendStatus(ctx context.Context, req *friendpb.Up
 		return responsepb.Code_RelationNotExist.BaseResponse(), nil
 	}
 
-	ok := f.Status.CanUpdateStatus(req.GetStatus())
+	ok := f.Status.CanUpdateStatus(req.Status)
 	if !ok {
 		return responsepb.Code_InvalidUpdateRelationAction.BaseResponse(), nil
 	}
 
-	if f.Status == req.GetStatus() {
+	if f.Status == req.Status {
 		return responsepb.Code_OK.BaseResponse(), nil
 	}
 
 	// unfriend action, need remove friend status from cache
-	if req.GetStatus() == friendpb.FriendStatus_STRANGER || req.GetStatus() == friendpb.FriendStatus_BLOCKED {
-		err = s.onUnfriend(ctx, info.GetUid(), info.GetFriendUid())
+	if req.Status == friendpb.FriendStatus_STRANGER || req.Status == friendpb.FriendStatus_BLOCKED {
+		err = s.onUnfriend(ctx, uid, fuid)
 		if err != nil {
 			return responsepb.NewBaseResponseWithMessage(responsepb.Code_CacheError, err.Error()), nil
 		}
 	}
 
 	// restore friend status to cache
-	if req.GetStatus() == friendpb.FriendStatus_UNBLOCKED {
-		err = s.onUnblock(ctx, info.GetUid(), info.GetFriendUid())
+	if req.Status == friendpb.FriendStatus_UNBLOCKED {
+		err = s.onUnblock(ctx, uid, fuid)
 		if err != nil {
 			return responsepb.NewBaseResponseWithMessage(responsepb.Code_CacheError, err.Error()), nil
 		}
 	}
 
-	f.SetStatus(req.GetStatus())
+	f.SetStatus(req.Status)
 	if err := s.friendDao.UpdateFriendStatus(ctx, f); err != nil {
 		return responsepb.NewBaseResponseWithError(err), nil
 	}
@@ -487,11 +507,11 @@ func (s *FriendService) UpdateFriendStatus(ctx context.Context, req *friendpb.Up
 }
 
 // delete or block friend.
-func (s *FriendService) onUnfriend(ctx context.Context, uid, friendUID string) error {
+func (s *FriendService) onUnfriend(ctx context.Context, uid, friendUID *types.ID) error {
 	return s.friendDao.DeleteFriendStatusFromCache(ctx, uid, friendUID)
 }
 
-func (s *FriendService) onUnblock(ctx context.Context, uid, friendUID string) error {
+func (s *FriendService) onUnblock(ctx context.Context, uid, friendUID *types.ID) error {
 	// check if friend is blocked me.
 	friend, err := s.friendDao.GetFriend(ctx, friendUID, uid)
 	if err != nil {
@@ -515,82 +535,42 @@ func (s *FriendService) CheckSendMessageAbility(ctx context.Context, req *friend
 	rsp := &friendpb.CheckSendMessageAbilityResponse{
 		Response: responsepb.Code_OK.BaseResponse(),
 	}
+	// TODO: should check if there a session id in request.
+	//  If there is, check if the session id is valid.
 
-	// is friend
-	if req.GetSessionType() == sessionpb.SessionType_SingleChat {
-		ok, err := s.friendDao.CheckIsFriend(ctx, req.GetFromUid(), req.GetToUid())
-		if err != nil {
-			return nil, err
-		}
-
-		if !ok {
-			rsp.Response = responsepb.Code_RelationNotExist.BaseResponse()
-			return rsp, nil
-		}
-	}
-
-	if req.GetSessionType() == sessionpb.SessionType_GroupChat {
-		ok, err := GetGroupService().isInGroup(ctx, req.GetToUid(), req.GetFromUid())
-		if err != nil {
-			return nil, err
-		}
-
-		if !ok {
-			rsp.Response = responsepb.Code_RelationNotExist.BaseResponse()
-			return rsp, nil
-		}
-	}
-
-	sessionID, err := s.getSessionID(ctx, req.GetFromUid(), req.GetToUid(), req.GetSessionType())
-	if err != nil {
-		rsp.Response = responsepb.NewBaseResponseWithError(err)
-		return rsp, nil
-	}
-
-	rsp.SessionId = &sessionID
-	return rsp, nil
-}
-
-func (s *FriendService) getSessionID(ctx context.Context, fromUId, toUID string, sessionType sessionpb.SessionType) (
-	int64, error) {
 	var (
-		tryCount = 0
+		from = types.NewID(req.FromUid)
+		to   = types.NewID(req.ToUid)
 	)
 
-CHECK:
-	if tryCount > 1 {
-		return 0, errors.New("get/create session failed")
+	// is friend
+	if req.SessionType == messagev1.SessionType_SingleChat {
+		ok, err := s.friendDao.CheckIsFriend(ctx, from, to)
+		if err != nil {
+			return nil, err
+		}
+
+		if !ok {
+			rsp.Response = responsepb.Code_RelationNotExist.BaseResponse()
+			return rsp, nil
+		}
 	}
 
-	// check session
-	session, err := s.sessionDao.GetSessionByUID(ctx, fromUId, toUID)
-	if err != nil {
-		return 0, err
+	if req.SessionType == messagev1.SessionType_GroupChat {
+		ok, err := GetGroupService().isInGroup(ctx, to, from)
+		if err != nil {
+			return nil, err
+		}
+
+		if !ok {
+			rsp.Response = responsepb.Code_RelationNotExist.BaseResponse()
+			return rsp, nil
+		}
 	}
 
-	if session != nil {
-		return session.ID, nil
-	}
+	// todo: check whether user subscribed if session type is channel.
 
-	// create session
-	switch sessionType {
-	case sessionpb.SessionType_GroupChat:
-		session, err = s.sessionDao.CreateGroupSession(ctx, toUID)
-	case sessionpb.SessionType_SingleChat:
-		session, err = s.sessionDao.CreateSingleChatSession(ctx, fromUId, toUID)
-	default:
-		return 0, errors.New("invalid session type")
-	}
-	if err != nil {
-		return 0, err
-	}
-	// err nil
-	if session == nil {
-		tryCount++
-		// 并发导致 查询时不存在然后又另外一个请求创建了session,从而这里创建时时报 duplicate 错误
-		// 尝试再获取一次,如果还是不存在,则返回错误
-		goto CHECK
-	}
-
-	return session.ID, nil
+	sid := internalUtil.Session(int32(req.SessionType), req.FromUid, req.ToUid)
+	rsp.SessionId = &sid
+	return rsp, nil
 }

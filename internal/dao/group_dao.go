@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/go-goim/core/pkg/db"
+	"github.com/go-goim/core/pkg/types"
 	"github.com/go-goim/user-service/internal/app"
 	"github.com/go-goim/user-service/internal/data"
 )
@@ -30,7 +31,7 @@ func GetGroupDao() *GroupDao {
 	return groupDao
 }
 
-func (d *GroupDao) GetGroup(ctx context.Context, id int64) (*data.Group, error) {
+func (d *GroupDao) GetGroup(ctx context.Context, id uint64) (*data.Group, error) {
 	group := &data.Group{}
 	tx := db.GetDBFromCtx(ctx).Where("id = ?", id).First(group)
 	if tx.Error != nil {
@@ -43,7 +44,7 @@ func (d *GroupDao) GetGroup(ctx context.Context, id int64) (*data.Group, error) 
 	return group, nil
 }
 
-func (d *GroupDao) GetGroupByGID(ctx context.Context, gid string) (*data.Group, error) {
+func (d *GroupDao) GetGroupByGID(ctx context.Context, gid *types.ID) (*data.Group, error) {
 	group := &data.Group{}
 	tx := db.GetDBFromCtx(ctx).Where("gid = ?", gid).First(group)
 	if tx.Error != nil {
@@ -56,7 +57,7 @@ func (d *GroupDao) GetGroupByGID(ctx context.Context, gid string) (*data.Group, 
 	return group, nil
 }
 
-func (d *GroupDao) ListGroups(ctx context.Context, gids []string) ([]*data.Group, error) {
+func (d *GroupDao) ListGroups(ctx context.Context, gids []*types.ID) ([]*data.Group, error) {
 	groups := make([]*data.Group, 0)
 	tx := db.GetDBFromCtx(ctx).Where("gid in (?)", gids).Find(&groups)
 	if tx.Error != nil {
