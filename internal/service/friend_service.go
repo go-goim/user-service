@@ -8,6 +8,7 @@ import (
 	messagev1 "github.com/go-goim/api/message/v1"
 	responsepb "github.com/go-goim/api/transport/response"
 	friendpb "github.com/go-goim/api/user/friend/v1"
+	"github.com/go-goim/core/pkg/util"
 
 	// core
 	"github.com/go-goim/core/pkg/db"
@@ -19,7 +20,6 @@ import (
 	"github.com/go-goim/user-service/internal/app"
 	"github.com/go-goim/user-service/internal/dao"
 	"github.com/go-goim/user-service/internal/data"
-	internalUtil "github.com/go-goim/user-service/internal/util"
 )
 
 // FriendService implements friendpb.FriendServiceServer
@@ -570,7 +570,7 @@ func (s *FriendService) CheckSendMessageAbility(ctx context.Context, req *friend
 
 	// todo: check whether user subscribed if session type is channel.
 
-	sid := internalUtil.Session(int32(req.SessionType), req.FromUid, req.ToUid)
+	sid := util.Session(int32(req.SessionType), req.FromUid, req.ToUid)
 	rsp.SessionId = &sid
 	return rsp, nil
 }
