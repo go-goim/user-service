@@ -54,8 +54,8 @@ func GetFriendService() *FriendService {
 func (s *FriendService) AddFriend(ctx context.Context, req *friendpb.BaseFriendRequest) (
 	*friendpb.AddFriendResponse, error) {
 	var (
-		uid  = types.NewID(req.Uid)
-		fuid = types.NewID(req.FriendUid)
+		uid  = types.ID(req.Uid)
+		fuid = types.ID(req.FriendUid)
 	)
 	friendUser, err := s.userDao.GetUserByUID(ctx, fuid)
 	if err != nil {
@@ -164,8 +164,8 @@ func (s *FriendService) addAutomatically(ctx context.Context, me, friend *data.F
 func (s *FriendService) sendFriendRequest(ctx context.Context, req *friendpb.BaseFriendRequest,
 	rsp *friendpb.AddFriendResponse) error {
 	var (
-		uid  = types.NewID(req.Uid)
-		fuid = types.NewID(req.FriendUid)
+		uid  = types.ID(req.Uid)
+		fuid = types.ID(req.FriendUid)
 	)
 	// load old friend request
 	fr, err := s.friendRequestDao.GetFriendRequest(ctx, uid, fuid)
@@ -176,8 +176,8 @@ func (s *FriendService) sendFriendRequest(ctx context.Context, req *friendpb.Bas
 	// if the friend request is not exist, create new one
 	if fr == nil {
 		fr = &data.FriendRequest{
-			UID:       types.NewID(req.Uid),
-			FriendUID: types.NewID(req.FriendUid),
+			UID:       types.ID(req.Uid),
+			FriendUID: types.ID(req.FriendUid),
 			Status:    friendpb.FriendRequestStatus_REQUESTED,
 		}
 
@@ -320,7 +320,7 @@ func (s *FriendService) ConfirmFriendRequest(ctx context.Context, req *friendpb.
 
 }
 
-func (s *FriendService) createOrSetFriend(ctx context.Context, uid, friendUID *types.ID, f *data.Friend) error {
+func (s *FriendService) createOrSetFriend(ctx context.Context, uid, friendUID types.ID, f *data.Friend) error {
 	if f != nil {
 		f.SetFriend()
 		return s.friendDao.UpdateFriendStatus(ctx, f)
@@ -338,8 +338,8 @@ func (s *FriendService) createOrSetFriend(ctx context.Context, uid, friendUID *t
 func (s *FriendService) GetFriendRequest(ctx context.Context, req *friendpb.BaseFriendRequest) (
 	*friendpb.GetFriendRequestResponse, error) {
 	var (
-		uid  = types.NewID(req.Uid)
-		fuid = types.NewID(req.FriendUid)
+		uid  = types.ID(req.Uid)
+		fuid = types.ID(req.FriendUid)
 	)
 	fr, err := s.friendRequestDao.GetFriendRequest(ctx, uid, fuid)
 	if err != nil {
@@ -363,7 +363,7 @@ func (s *FriendService) GetFriendRequest(ctx context.Context, req *friendpb.Base
 func (s *FriendService) QueryFriendRequestList(ctx context.Context, req *friendpb.QueryFriendRequestListRequest) (
 	*friendpb.QueryFriendRequestListResponse, error) {
 	var (
-		uid = types.NewID(req.Uid)
+		uid = types.ID(req.Uid)
 	)
 
 	frList, err := s.friendRequestDao.GetFriendRequests(ctx, uid, int(req.Status))
@@ -389,7 +389,7 @@ func (s *FriendService) QueryFriendRequestList(ctx context.Context, req *friendp
 
 func (s *FriendService) IsFriend(ctx context.Context, req *friendpb.BaseFriendRequest) (
 	*responsepb.BaseResponse, error) {
-	ok, err := s.friendDao.CheckIsFriend(ctx, types.NewID(req.Uid), types.NewID(req.FriendUid))
+	ok, err := s.friendDao.CheckIsFriend(ctx, types.ID(req.Uid), types.ID(req.FriendUid))
 	if err != nil {
 		return responsepb.NewBaseResponseWithMessage(responsepb.Code_CacheError, err.Error()), nil
 	}
@@ -403,7 +403,7 @@ func (s *FriendService) IsFriend(ctx context.Context, req *friendpb.BaseFriendRe
 
 func (s *FriendService) GetFriend(ctx context.Context, req *friendpb.BaseFriendRequest) (
 	*friendpb.GetFriendResponse, error) {
-	f, err := s.friendDao.GetFriend(ctx, types.NewID(req.Uid), types.NewID(req.FriendUid))
+	f, err := s.friendDao.GetFriend(ctx, types.ID(req.Uid), types.ID(req.FriendUid))
 	if err != nil {
 		return nil, err
 	}
@@ -421,7 +421,7 @@ func (s *FriendService) GetFriend(ctx context.Context, req *friendpb.BaseFriendR
 
 func (s *FriendService) QueryFriendList(ctx context.Context, req *friendpb.QueryFriendListRequest) (
 	*friendpb.QueryFriendListResponse, error) {
-	friends, err := s.friendDao.GetFriends(ctx, types.NewID(req.Uid))
+	friends, err := s.friendDao.GetFriends(ctx, types.ID(req.Uid))
 	if err != nil {
 		return nil, err
 	}
@@ -430,7 +430,7 @@ func (s *FriendService) QueryFriendList(ctx context.Context, req *friendpb.Query
 		rsp = &friendpb.QueryFriendListResponse{
 			Response: responsepb.Code_OK.BaseResponse(),
 		}
-		friendUIDList = make([]*types.ID, len(friends))
+		friendUIDList = make([]types.ID, len(friends))
 		friendMap     = make(map[int64]*data.User)
 	)
 	for i, f := range friends {
@@ -461,8 +461,8 @@ func (s *FriendService) QueryFriendList(ctx context.Context, req *friendpb.Query
 func (s *FriendService) UpdateFriendStatus(ctx context.Context, req *friendpb.UpdateFriendStatusRequest) (
 	*responsepb.BaseResponse, error) {
 	var (
-		uid  = types.NewID(req.Info.Uid)
-		fuid = types.NewID(req.Info.FriendUid)
+		uid  = types.ID(req.Info.Uid)
+		fuid = types.ID(req.Info.FriendUid)
 	)
 	f, err := s.friendDao.GetFriend(ctx, uid, fuid)
 	if err != nil {
@@ -507,11 +507,11 @@ func (s *FriendService) UpdateFriendStatus(ctx context.Context, req *friendpb.Up
 }
 
 // delete or block friend.
-func (s *FriendService) onUnfriend(ctx context.Context, uid, friendUID *types.ID) error {
+func (s *FriendService) onUnfriend(ctx context.Context, uid, friendUID types.ID) error {
 	return s.friendDao.DeleteFriendStatusFromCache(ctx, uid, friendUID)
 }
 
-func (s *FriendService) onUnblock(ctx context.Context, uid, friendUID *types.ID) error {
+func (s *FriendService) onUnblock(ctx context.Context, uid, friendUID types.ID) error {
 	// check if friend is blocked me.
 	friend, err := s.friendDao.GetFriend(ctx, friendUID, uid)
 	if err != nil {
@@ -539,8 +539,8 @@ func (s *FriendService) CheckSendMessageAbility(ctx context.Context, req *friend
 	//  If there is, check if the session id is valid.
 
 	var (
-		from = types.NewID(req.FromUid)
-		to   = types.NewID(req.ToUid)
+		from = types.ID(req.FromUid)
+		to   = types.ID(req.ToUid)
 	)
 
 	// is friend
@@ -570,7 +570,7 @@ func (s *FriendService) CheckSendMessageAbility(ctx context.Context, req *friend
 
 	// todo: check whether user subscribed if session type is channel.
 
-	sid := util.Session(int32(req.SessionType), req.FromUid, req.ToUid)
+	sid := util.Session(req.SessionType, from, to)
 	rsp.SessionId = &sid
 	return rsp, nil
 }

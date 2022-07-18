@@ -9,8 +9,8 @@ import (
 // GroupMember data stored in mysql.
 type GroupMember struct {
 	ID        uint64                     `gorm:"primary_key"`
-	GID       *types.ID                  `gorm:"column:gid"`
-	UID       *types.ID                  `gorm:"column:uid"`
+	GID       types.ID                   `gorm:"column:gid"`
+	UID       types.ID                   `gorm:"column:uid"`
 	Type      grouppb.GroupMember_Type   `gorm:"column:type"`
 	Status    grouppb.GroupMember_Status `gorm:"column:status"`
 	CreatedAt int64                      `gorm:"column:created_at;autoCreateTime"`

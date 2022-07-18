@@ -35,7 +35,7 @@ func (d *FriendRequestDao) CreateFriendRequest(ctx context.Context, fr *data.Fri
 	return db.GetDBFromCtx(ctx).Create(fr).Error
 }
 
-func (d *FriendRequestDao) GetFriendRequest(ctx context.Context, uid, friendUID *types.ID) (*data.FriendRequest, error) {
+func (d *FriendRequestDao) GetFriendRequest(ctx context.Context, uid, friendUID types.ID) (*data.FriendRequest, error) {
 	var fr data.FriendRequest
 	if err := db.GetDBFromCtx(ctx).Where("uid = ? AND friend_uid = ?", uid, friendUID).First(&fr).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -59,7 +59,7 @@ func (d *FriendRequestDao) GetFriendRequestByID(ctx context.Context, id uint64) 
 	return &fr, nil
 }
 
-func (d *FriendRequestDao) GetFriendRequests(ctx context.Context, uid *types.ID, status int) ([]*data.FriendRequest, error) {
+func (d *FriendRequestDao) GetFriendRequests(ctx context.Context, uid types.ID, status int) ([]*data.FriendRequest, error) {
 	var frs []*data.FriendRequest
 	// query friend request send to me.
 	if err := db.GetDBFromCtx(ctx).Where("friend_uid = ? AND status = ?", uid, status).Find(&frs).Error; err != nil {

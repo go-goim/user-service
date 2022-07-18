@@ -10,9 +10,9 @@ import (
 type Friend struct {
 	ID uint64 `gorm:"primary_key"`
 	// UID is the user uid of the user.
-	UID *types.ID `gorm:"column:uid"`
+	UID types.ID `gorm:"column:uid"`
 	// FriendUID is the user uid of the friend.
-	FriendUID *types.ID `gorm:"column:friend_uid"`
+	FriendUID types.ID `gorm:"column:friend_uid"`
 	// Status is the status of the relation.
 	Status friendpb.FriendStatus `gorm:"column:status"`
 	// CreatedAt is the creation time of the relation.

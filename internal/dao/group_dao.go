@@ -44,7 +44,7 @@ func (d *GroupDao) GetGroup(ctx context.Context, id uint64) (*data.Group, error)
 	return group, nil
 }
 
-func (d *GroupDao) GetGroupByGID(ctx context.Context, gid *types.ID) (*data.Group, error) {
+func (d *GroupDao) GetGroupByGID(ctx context.Context, gid types.ID) (*data.Group, error) {
 	group := &data.Group{}
 	tx := db.GetDBFromCtx(ctx).Where("gid = ?", gid).First(group)
 	if tx.Error != nil {
@@ -57,7 +57,7 @@ func (d *GroupDao) GetGroupByGID(ctx context.Context, gid *types.ID) (*data.Grou
 	return group, nil
 }
 
-func (d *GroupDao) ListGroups(ctx context.Context, gids []*types.ID) ([]*data.Group, error) {
+func (d *GroupDao) ListGroups(ctx context.Context, gids []types.ID) ([]*data.Group, error) {
 	groups := make([]*data.Group, 0)
 	tx := db.GetDBFromCtx(ctx).Where("gid in (?)", gids).Find(&groups)
 	if tx.Error != nil {

@@ -8,16 +8,16 @@ import (
 // User is the model of user table based on gorm, which contains user basic info.
 // User data stored in mysql.
 type User struct {
-	ID        uint64    `gorm:"primary_key"`
-	UID       *types.ID `gorm:"column:uid"`
-	Name      string    `gorm:"column:name"`
-	Password  string    `gorm:"column:password"`
-	Email     *string   `gorm:"column:email"`
-	Phone     *string   `gorm:"column:phone"`
-	Avatar    string    `gorm:"column:avatar"`
-	Status    int       `gorm:"column:status"`
-	CreatedAt int64     `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt int64     `gorm:"column:updated_at;autoUpdateTime"`
+	ID        uint64   `gorm:"primary_key"`
+	UID       types.ID `gorm:"column:uid"`
+	Name      string   `gorm:"column:name"`
+	Password  string   `gorm:"column:password"`
+	Email     *string  `gorm:"column:email"`
+	Phone     *string  `gorm:"column:phone"`
+	Avatar    string   `gorm:"column:avatar"`
+	Status    int      `gorm:"column:status"`
+	CreatedAt int64    `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt int64    `gorm:"column:updated_at;autoUpdateTime"`
 }
 
 func (User) TableName() string {

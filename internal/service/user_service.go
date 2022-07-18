@@ -37,7 +37,7 @@ func GetUserService() *UserService {
 }
 
 func (s *UserService) GetUser(ctx context.Context, req *userv1.GetUserInfoRequest) (*userv1.UserResponse, error) {
-	user, err := s.userDao.GetUserByUID(ctx, types.NewID(req.Uid))
+	user, err := s.userDao.GetUserByUID(ctx, types.ID(req.Uid))
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *userv1.CreateUserRequ
 
 	if user == nil {
 		user = &data.User{
-			UID:      types.GenerateID(),
+			UID:      types.NewID(),
 			Name:     req.GetName(),
 			Password: util.HashString(req.GetPassword()),
 		}
@@ -148,7 +148,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *userv1.CreateUserRequ
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, req *userv1.UpdateUserRequest) (*userv1.UserResponse, error) {
-	user, err := s.userDao.GetUserByUID(ctx, types.NewID(req.Uid))
+	user, err := s.userDao.GetUserByUID(ctx, types.ID(req.Uid))
 	if err != nil {
 		return nil, err
 	}

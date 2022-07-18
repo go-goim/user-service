@@ -44,8 +44,8 @@ func (s *GroupService) GetGroup(ctx context.Context, req *grouppb.GetGroupReques
 	}
 
 	var (
-		gid      = types.NewID(req.Gid)
-		ownerUID = types.NewID(req.OwnerUid)
+		gid      = types.ID(req.Gid)
+		ownerUID = types.ID(req.OwnerUid)
 	)
 
 	group, err := s.groupDao.GetGroupByGID(ctx, gid)
@@ -71,7 +71,7 @@ func (s *GroupService) GetGroup(ctx context.Context, req *grouppb.GetGroupReques
 	}
 
 	var (
-		uidList []*types.ID
+		uidList []types.ID
 		gmMap   = make(map[int64]*grouppb.GroupMember)
 	)
 	for _, gm := range gmList {
@@ -98,7 +98,7 @@ func (s *GroupService) GetGroup(ctx context.Context, req *grouppb.GetGroupReques
 		}
 
 		rsp.Group.Members = append(rsp.Group.Members, gm)
-		if u.UID.Equal(group.OwnerUID) {
+		if u.UID == group.OwnerUID {
 			rsp.Group.Owner = gm
 		}
 	}
@@ -111,13 +111,13 @@ func (s *GroupService) ListGroups(ctx context.Context, req *grouppb.ListGroupsRe
 		Response: responsepb.Code_OK.BaseResponse(),
 	}
 
-	gmList, err := s.groupMemberDao.ListGroupByUID(ctx, types.NewID(req.Uid))
+	gmList, err := s.groupMemberDao.ListGroupByUID(ctx, types.ID(req.Uid))
 	if err != nil {
 		rsp.Response = responsepb.NewBaseResponseWithError(err)
 		return rsp, nil
 	}
 
-	var gidList []*types.ID
+	var gidList []types.ID
 	for _, gm := range gmList {
 		gidList = append(gidList, gm.GID)
 	}
@@ -137,11 +137,11 @@ func (s *GroupService) ListGroups(ctx context.Context, req *grouppb.ListGroupsRe
 
 func (s *GroupService) CreateGroup(ctx context.Context, req *grouppb.CreateGroupRequest) (*grouppb.CreateGroupResponse, error) {
 	group := &data.Group{
-		GID:         types.GenerateID(),
+		GID:         types.NewID(),
 		Name:        req.Name,
 		Description: req.Description,
 		Avatar:      req.Avatar,
-		OwnerUID:    types.NewID(req.OwnerUid),
+		OwnerUID:    types.ID(req.OwnerUid),
 		MaxMembers:  500, // todo: use config
 		MemberCount: len(req.MembersUid) + 1,
 	}
@@ -157,7 +157,7 @@ func (s *GroupService) CreateGroup(ctx context.Context, req *grouppb.CreateGroup
 	for _, uid := range req.MembersUid {
 		members = append(members, &data.GroupMember{
 			GID:  group.GID,
-			UID:  types.NewID(uid),
+			UID:  types.ID(uid),
 			Type: grouppb.GroupMember_TypeMember,
 		})
 	}
@@ -192,7 +192,7 @@ func (s *GroupService) UpdateGroup(ctx context.Context, req *grouppb.UpdateGroup
 	}
 
 	var (
-		gid = types.NewID(req.Gid)
+		gid = types.ID(req.Gid)
 	)
 
 	group, err := s.groupDao.GetGroupByGID(ctx, gid)
@@ -236,7 +236,7 @@ func (s *GroupService) UpdateGroup(ctx context.Context, req *grouppb.UpdateGroup
 func (s *GroupService) DeleteGroup(ctx context.Context, req *grouppb.DeleteGroupRequest) (*responsepb.BaseResponse, error) {
 	rsp := responsepb.Code_OK.BaseResponse()
 
-	group, err := s.groupDao.GetGroupByGID(ctx, types.NewID(req.Gid))
+	group, err := s.groupDao.GetGroupByGID(ctx, types.ID(req.Gid))
 	if err != nil {
 		rsp = responsepb.NewBaseResponseWithError(err)
 		return rsp, nil
@@ -270,8 +270,8 @@ func (s *GroupService) AddGroupMember(ctx context.Context, req *grouppb.ChangeGr
 	}
 
 	var (
-		gid  = types.NewID(req.Gid)
-		uids = make([]*types.ID, 0, len(req.Uids))
+		gid  = types.ID(req.Gid)
+		uids = make([]types.ID, 0, len(req.Uids))
 	)
 
 	group, err := s.groupDao.GetGroupByGID(ctx, gid)
@@ -286,7 +286,7 @@ func (s *GroupService) AddGroupMember(ctx context.Context, req *grouppb.ChangeGr
 	}
 
 	for _, uid := range req.Uids {
-		uids = append(uids, types.NewID(uid))
+		uids = append(uids, types.ID(uid))
 	}
 
 	uids, err = s.groupMemberDao.ListInGroupUIDs(ctx, group.GID, uids)
@@ -302,17 +302,18 @@ func (s *GroupService) AddGroupMember(ctx context.Context, req *grouppb.ChangeGr
 
 	// filter out the users already in the group
 	var (
-		inGroupUIDs = util.NewSet[int64]()
-		newUIDs     []*types.ID
+		inGroupUIDs = util.NewSet[types.ID]()
+		newUIDs     []types.ID
 	)
 
 	for _, uid := range uids {
-		inGroupUIDs.Add(uid.Int64())
+		inGroupUIDs.Add(uid)
 	}
 
 	for _, uid := range req.Uids {
-		if !inGroupUIDs.Contains(uid) {
-			newUIDs = append(newUIDs, types.NewID(uid))
+		id := types.ID(uid)
+		if !inGroupUIDs.Contains(id) {
+			newUIDs = append(newUIDs, id)
 		}
 	}
 
@@ -369,9 +370,9 @@ func (s *GroupService) RemoveGroupMember(ctx context.Context, req *grouppb.Chang
 	}
 
 	var (
-		gid      = types.NewID(req.Gid)
-		ownerUID = types.NewID(req.OwnerUid)
-		uids     = make([]*types.ID, 0, len(req.Uids))
+		gid      = types.ID(req.Gid)
+		ownerUID = types.ID(req.OwnerUid)
+		uids     = make([]types.ID, 0, len(req.Uids))
 	)
 
 	group, err := s.groupDao.GetGroupByGID(ctx, gid)
@@ -385,7 +386,7 @@ func (s *GroupService) RemoveGroupMember(ctx context.Context, req *grouppb.Chang
 		return rsp, nil
 	}
 
-	if !group.OwnerUID.Equal(ownerUID) {
+	if group.OwnerUID != ownerUID {
 		rsp.Response = responsepb.Code_NotGroupOwner.BaseResponse()
 		return rsp, nil
 	}
@@ -403,17 +404,18 @@ func (s *GroupService) RemoveGroupMember(ctx context.Context, req *grouppb.Chang
 
 	// filter out the users not in the group
 	var (
-		inGroupUIDs    = util.NewSet[int64]()
-		needRemoveUIDs []*types.ID
+		inGroupUIDs    = util.NewSet[types.ID]()
+		needRemoveUIDs []types.ID
 	)
 
 	for _, uid := range uids {
-		inGroupUIDs.Add(uid.Int64())
+		inGroupUIDs.Add(uid)
 	}
 
 	for _, uid := range req.Uids {
-		if inGroupUIDs.Contains(uid) {
-			needRemoveUIDs = append(needRemoveUIDs, types.NewID(uid))
+		id := types.ID(uid)
+		if inGroupUIDs.Contains(id) {
+			needRemoveUIDs = append(needRemoveUIDs, id)
 		}
 	}
 
@@ -445,7 +447,7 @@ func (s *GroupService) RemoveGroupMember(ctx context.Context, req *grouppb.Chang
 	return rsp, nil
 }
 
-func (s *GroupService) isInGroup(ctx context.Context, gid, uid *types.ID) (bool, error) {
+func (s *GroupService) isInGroup(ctx context.Context, gid, uid types.ID) (bool, error) {
 	gm, err := s.groupMemberDao.IsMemberOfGroup(ctx, gid, uid)
 	if err != nil {
 		return false, err

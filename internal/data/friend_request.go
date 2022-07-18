@@ -9,8 +9,8 @@ import (
 // FriendRequest data stored in mysql.
 type FriendRequest struct {
 	ID        uint64                       `gorm:"primary_key"`
-	UID       *types.ID                    `gorm:"column:uid"`
-	FriendUID *types.ID                    `gorm:"column:friend_uid"`
+	UID       types.ID                     `gorm:"column:uid"`
+	FriendUID types.ID                     `gorm:"column:friend_uid"`
 	Status    friendpb.FriendRequestStatus `gorm:"column:status"`
 	CreatedAt int64                        `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt int64                        `gorm:"column:updated_at;autoUpdateTime"`
