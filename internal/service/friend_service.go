@@ -57,6 +57,7 @@ func (s *FriendService) AddFriend(ctx context.Context, req *friendpb.BaseFriendR
 		uid  = types.ID(req.Uid)
 		fuid = types.ID(req.FriendUid)
 	)
+	log.Info("add friend request", "uid", uid, "fuid", fuid)
 	friendUser, err := s.userDao.GetUserByUID(ctx, fuid)
 	if err != nil {
 		return nil, err
@@ -186,9 +187,11 @@ func (s *FriendService) sendFriendRequest(ctx context.Context, req *friendpb.Bas
 		}
 
 		rsp.Result.Status = friendpb.AddFriendStatus_SEND_REQUEST_SUCCESS
+		rsp.Result.FriendRequest = fr.ToProto()
 		return nil
 	}
 
+	rsp.Result.FriendRequest = fr.ToProto()
 	// if the friend request is exist, check the status
 	if fr.IsRequested() {
 		rsp.Result.Status = friendpb.AddFriendStatus_ALREADY_SENT_REQUEST
@@ -203,6 +206,7 @@ func (s *FriendService) sendFriendRequest(ctx context.Context, req *friendpb.Bas
 		}
 
 		rsp.Result.Status = friendpb.AddFriendStatus_SEND_REQUEST_SUCCESS
+		rsp.Result.FriendRequest = fr.ToProto()
 	}
 
 	if fr.IsRejected() {
@@ -213,6 +217,7 @@ func (s *FriendService) sendFriendRequest(ctx context.Context, req *friendpb.Bas
 		}
 
 		rsp.Result.Status = friendpb.AddFriendStatus_SEND_REQUEST_SUCCESS
+		rsp.Result.FriendRequest = fr.ToProto()
 	}
 
 	return nil

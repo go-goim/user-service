@@ -9,10 +9,10 @@ DROP TABLE IF EXISTS goim.user;
 
 create table if not exists goim.user (
 	`id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-	`uid` varchar(64) not null, -- 22 bytes of uuid
+	`uid` BIGINT not null,
 	`name` varchar(32) not null,
 	`password` varchar(128) not null,
-	`email` varchar(32),
+	`email` varchar(64),
 	`phone` varchar(32),
 	`avatar` varchar(128) not null,
 	`status` tinyint not null DEFAULT 0,
@@ -24,26 +24,13 @@ create table if not exists goim.user (
     UNIQUE KEY (`phone`)
 ) auto_increment = 10000 engine = innodb charset = utf8mb4;
 
--- mock data
-insert into goim.user (`id`, `uid`, `name`, `password`, `email`, `phone`, `avatar`, `status`, `created_at`, `updated_at`)
-values
-    (10000, '4F8DSQByUsEUMoETzTCabh', 'user1', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'user1@example.com', NULL, ' ', 1, 1528894200, 1528894200),
-    (10001, 'C6CtUjpC6h5e5SW9tBFNVX', 'user2', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'user2@example.com', NULL, ' ', 0, 1528894200, 1528894200),
-    (10002, '7mRZLYedtK1EwxzC5X1Lxf', 'user3', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'user3@example.com', NULL, ' ', 0, 1528894200, 1528894200),
-    (10003, 'WmbtshDDMUgb3KWFisWZ4E', 'user4', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'user4@example.com', NULL, ' ', 0, 1528894200, 1528894200),
-    (10004, 'Vf4gA6vQdeF81YHV7DU4pP', 'user5', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'user5@example.com', NULL, ' ', 0, 1528894200, 1528894200),
-    (10005, 'Pzu74cyA3BJhnj1fx2oSuz', 'user6', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'user6@example.com', NULL, ' ', 0, 1528894200, 1528894200),
-    (10006, 'KWZs8sLE1dNQRCscx4rs3q', 'user7', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'user7@example.com', NULL, ' ', 0, 1528894200, 1528894200),
-    (10007, 'KmFExCJdsVJ2ws8uZzg49d', 'user8', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'user8@example.com', NULL, ' ', 0, 1528894200, 1528894200),
-    (10008, 'URM38EZ2A1LA3qkyLuoS3D', 'user9', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'user9@example.com', NULL, ' ', 0, 1528894200, 1528894200);
-
 -- define friend table based on go structure Friend in current directory
 DROP TABLE IF EXISTS goim.friend;
 
 CREATE TABLE IF NOT EXISTS goim.friend (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `uid` varchar(64) not null, -- 22 bytes of uuid
-    `friend_uid` varchar(64) not null, -- 22 bytes of uuid
+    `uid` BIGINT not null,
+    `friend_uid` BIGINT not null,
     `status` tinyint not null default 0 COMMENT '0: friend; 1: stranger; 2: blacked',
     `created_at` int not null default 0,
     `updated_at` int not null default 0,
@@ -56,8 +43,8 @@ DROP TABLE IF EXISTS goim.friend_request;
 
 CREATE TABLE IF NOT EXISTS goim.friend_request (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `uid` varchar(64) not null, -- 22 bytes of uuid
-    `friend_uid` varchar(64) not null, -- 22 bytes of uuid
+    `uid` BIGINT not null,
+    `friend_uid` BIGINT not null,
     `status` tinyint not null default 0 COMMENT '0: pending; 1: accepted; 2: rejected',
     `created_at` int not null default 0,
     `updated_at` int not null default 0,
@@ -70,7 +57,7 @@ DROP TABLE IF EXISTS goim.group;
 
 CREATE TABLE IF NOT EXISTS goim.group (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `gid` varchar(64) not null, -- g_ + 22 bytes of uuid
+    `gid` BIGINT not null,
     `name` varchar(64) not null, -- group name
     `description` varchar(255) not null, -- group description
     `avatar` varchar(255) not null, -- group avatar
@@ -89,8 +76,8 @@ DROP TABLE IF EXISTS goim.group_member;
 
 CREATE TABLE IF NOT EXISTS goim.group_member (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `gid` varchar(64) not null, -- g_ + 22 bytes of uuid
-    `uid` varchar(64) not null, -- 22 bytes of uuid
+    `gid` BIGINT not null,
+    `uid` BIGINT not null,
     `type` tinyint not null default 0 COMMENT '0: owner; 1: member',
     `status` tinyint not null default 0 COMMENT '0: normal; 1: silent;',
     `created_at` int not null default 0,
