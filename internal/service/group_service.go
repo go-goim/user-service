@@ -71,11 +71,11 @@ func (s *GroupService) GetGroup(ctx context.Context, req *grouppb.GetGroupReques
 	}
 
 	var (
-		uidList []types.ID
+		uidList = make([]types.ID, len(gmList))
 		gmMap   = make(map[int64]*grouppb.GroupMember)
 	)
-	for _, gm := range gmList {
-		uidList = append(uidList, gm.UID)
+	for i, gm := range gmList {
+		uidList[i] = gm.UID
 		gmMap[gm.UID.Int64()] = gm.ToProto()
 	}
 
@@ -117,9 +117,9 @@ func (s *GroupService) ListGroups(ctx context.Context, req *grouppb.ListGroupsRe
 		return rsp, nil
 	}
 
-	var gidList []types.ID
-	for _, gm := range gmList {
-		gidList = append(gidList, gm.GID)
+	var gidList = make([]types.ID, len(gmList))
+	for i, gm := range gmList {
+		gidList[i] = gm.GID
 	}
 
 	groupList, err := s.groupDao.ListGroups(ctx, gidList)
@@ -338,17 +338,17 @@ func (s *GroupService) AddGroupMember(ctx context.Context, req *grouppb.ChangeGr
 	// create group members and increase the member count
 	err = db.Transaction(ctx, func(ctx2 context.Context) error {
 		// increase the member count first
-		success, err := s.groupDao.IncrGroupMemberCount(ctx2, group, uint(len(newUIDs)))
-		if err != nil {
-			return err
+		success, err1 := s.groupDao.IncrGroupMemberCount(ctx2, group, uint(len(newUIDs)))
+		if err1 != nil {
+			return err1
 		}
 
 		if !success {
 			return responsepb.Code_GroupLimitExceed.BaseResponse()
 		}
 
-		if err := s.groupMemberDao.CreateGroupMember(ctx2, gmList...); err != nil {
-			return err
+		if err1 = s.groupMemberDao.CreateGroupMember(ctx2, gmList...); err1 != nil {
+			return err1
 		}
 
 		return nil
@@ -422,17 +422,17 @@ func (s *GroupService) RemoveGroupMember(ctx context.Context, req *grouppb.Chang
 	// delete group members and decrease the member count
 	err = db.Transaction(ctx, func(ctx2 context.Context) error {
 		// decrease the member count first
-		success, err := s.groupDao.DecrGroupMemberCount(ctx2, group, uint(len(needRemoveUIDs)))
-		if err != nil {
-			return err
+		success, err1 := s.groupDao.DecrGroupMemberCount(ctx2, group, uint(len(needRemoveUIDs)))
+		if err1 != nil {
+			return err1
 		}
 
 		if !success {
 			return responsepb.Code_GroupLimitExceed.BaseResponse()
 		}
 
-		if err := s.groupMemberDao.DeleteGroupMembers(ctx2, group.GID, needRemoveUIDs); err != nil {
-			return err
+		if err1 = s.groupMemberDao.DeleteGroupMembers(ctx2, group.GID, needRemoveUIDs); err1 != nil {
+			return err1
 		}
 
 		return nil
