@@ -14,6 +14,7 @@ import (
 	"github.com/go-goim/core/pkg/consts"
 	"github.com/go-goim/core/pkg/db"
 	"github.com/go-goim/core/pkg/log"
+	"github.com/go-goim/core/pkg/types"
 	"github.com/go-goim/core/pkg/util"
 
 	"github.com/go-goim/user-service/internal/app"
@@ -38,7 +39,7 @@ func GetUserDao() *UserDao {
 	return userDao
 }
 
-func (u *UserDao) GetUser(ctx context.Context, id int64) (*data.User, error) {
+func (u *UserDao) GetUser(ctx context.Context, id uint64) (*data.User, error) {
 	user := &data.User{}
 	tx := db.GetDBFromCtx(ctx).Where("id = ?", id).First(user)
 	if tx.Error != nil {
@@ -55,7 +56,7 @@ func (u *UserDao) GetUser(ctx context.Context, id int64) (*data.User, error) {
 	return user, nil
 }
 
-func (u *UserDao) getUserFromCache(ctx context.Context, uid string) (*data.User, error) {
+func (u *UserDao) getUserFromCache(ctx context.Context, uid types.ID) (*data.User, error) {
 	log.Debug("getUserFromCache", "uid", uid)
 	user := &data.User{}
 	key := fmt.Sprintf("user:%s", uid)
@@ -78,7 +79,7 @@ func (u *UserDao) getUserFromCache(ctx context.Context, uid string) (*data.User,
 
 func (u *UserDao) setUserToCache(ctx context.Context, user *data.User) error {
 	log.Debug("setUserToCache", "uid", user.ID)
-	key := fmt.Sprintf("user:%s", user.UID)
+	key := fmt.Sprintf("user:%d", user.UID.Int64())
 	val, err := json.Marshal(user)
 	if err != nil {
 		return err
@@ -89,7 +90,7 @@ func (u *UserDao) setUserToCache(ctx context.Context, user *data.User) error {
 }
 
 // GetUserByUID get user by uid
-func (u *UserDao) GetUserByUID(ctx context.Context, uid string) (*data.User, error) {
+func (u *UserDao) GetUserByUID(ctx context.Context, uid types.ID) (*data.User, error) {
 	user, err := u.getUserFromCache(ctx, uid)
 	log.Debug("getUserFromCache result", "user", user, "err", err)
 	if err != nil {
@@ -155,8 +156,8 @@ func (u *UserDao) GetUserByPhone(ctx context.Context, phone string) (*data.User,
 }
 
 // GetUserOnlineAgent get user online agent from redis
-func (u *UserDao) GetUserOnlineAgent(ctx context.Context, uid string) (string, error) {
-	key := consts.GetUserOnlineAgentKey(uid)
+func (u *UserDao) GetUserOnlineAgent(ctx context.Context, uid types.ID) (string, error) {
+	key := consts.GetUserOnlineAgentKey(uid.Int64())
 	val, err := u.rdb.Get(ctx, key).Result()
 	if err != nil {
 		if err == redisv8.Nil {
@@ -200,7 +201,7 @@ func (u *UserDao) UndoDelete(ctx context.Context, user *data.User) error {
 	return nil
 }
 
-func (u *UserDao) ListUsers(ctx context.Context, uids ...string) ([]*data.User, error) {
+func (u *UserDao) ListUsers(ctx context.Context, uids ...types.ID) ([]*data.User, error) {
 	var users []*data.User
 	if len(uids) == 0 {
 		return users, nil

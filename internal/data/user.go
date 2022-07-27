@@ -2,21 +2,22 @@ package data
 
 import (
 	userv1 "github.com/go-goim/api/user/v1"
+	"github.com/go-goim/core/pkg/types"
 )
 
 // User is the model of user table based on gorm, which contains user basic info.
 // User data stored in mysql.
 type User struct {
-	ID        int64   `gorm:"primary_key"`
-	UID       string  `gorm:"type:varchar(64);unique_index;not null"`
-	Name      string  `gorm:"type:varchar(32);not null"`
-	Password  string  `gorm:"type:varchar(32);not null"`
-	Email     *string `gorm:"type:varchar(32)"`
-	Phone     *string `gorm:"type:varchar(32)"`
-	Avatar    string  `gorm:"type:varchar(128);not null"`
-	Status    int     `gorm:"type:tinyint(1);not null"`
-	CreatedAt int64   `gorm:"type:bigint(20);not null;autoCreateTime"`
-	UpdatedAt int64   `gorm:"type:bigint(20);not null;autoUpdateTime"`
+	ID        uint64   `gorm:"primary_key"`
+	UID       types.ID `gorm:"column:uid"`
+	Name      string   `gorm:"column:name"`
+	Password  string   `gorm:"column:password"`
+	Email     *string  `gorm:"column:email"`
+	Phone     *string  `gorm:"column:phone"`
+	Avatar    string   `gorm:"column:avatar"`
+	Status    int      `gorm:"column:status"`
+	CreatedAt int64    `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt int64    `gorm:"column:updated_at;autoUpdateTime"`
 }
 
 func (User) TableName() string {
@@ -50,25 +51,13 @@ func (u *User) SetPhone(phone string) {
 	u.Phone = &phone
 }
 
-func (u *User) ToProtoUserInternal() *userv1.UserInternal {
-	return &userv1.UserInternal{
-		Uid:       u.UID,
-		Name:      u.Name,
-		Email:     u.Email,
-		Phone:     u.Phone,
-		Avatar:    u.Avatar,
-		Password:  u.Password,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
-	}
-}
-
 func (u *User) ToProto() *userv1.User {
 	return &userv1.User{
-		Uid:    u.UID,
-		Name:   u.Name,
-		Email:  u.Email,
-		Phone:  u.Phone,
-		Avatar: u.Avatar,
+		Uid:      u.UID.Int64(),
+		Name:     u.Name,
+		Password: u.Password,
+		Email:    u.Email,
+		Phone:    u.Phone,
+		Avatar:   u.Avatar,
 	}
 }

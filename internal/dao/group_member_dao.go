@@ -12,6 +12,7 @@ import (
 	"github.com/go-goim/core/pkg/cache"
 	"github.com/go-goim/core/pkg/db"
 	"github.com/go-goim/core/pkg/log"
+	"github.com/go-goim/core/pkg/types"
 	"github.com/go-goim/user-service/internal/data"
 )
 
@@ -29,7 +30,7 @@ func GetGroupMemberDao() *GroupMemberDao {
 	return groupMemberDao
 }
 
-func (d *GroupMemberDao) GetGroupMember(ctx context.Context, id int64) (*data.GroupMember, error) {
+func (d *GroupMemberDao) GetGroupMember(ctx context.Context, id uint64) (*data.GroupMember, error) {
 	groupMember := &data.GroupMember{}
 	tx := db.GetDBFromCtx(ctx).Where("id = ?", id).First(groupMember)
 	if tx.Error != nil {
@@ -42,7 +43,7 @@ func (d *GroupMemberDao) GetGroupMember(ctx context.Context, id int64) (*data.Gr
 	return groupMember, nil
 }
 
-func (d *GroupMemberDao) IsMemberOfGroup(ctx context.Context, gid, uid string) (*data.GroupMember, error) {
+func (d *GroupMemberDao) IsMemberOfGroup(ctx context.Context, gid, uid types.ID) (*data.GroupMember, error) {
 	// load from cache
 	status, err := d.IsMemberOfGroupFromCache(ctx, gid, uid)
 	if err != nil && err != cache.ErrCacheMiss {
@@ -74,9 +75,9 @@ func (d *GroupMemberDao) IsMemberOfGroup(ctx context.Context, gid, uid string) (
 }
 
 // IsMemberOfGroupFromCache return member status in group of given uid. 0: active , 1: silent
-func (d *GroupMemberDao) IsMemberOfGroupFromCache(ctx context.Context, gid, uid string) (int, error) {
+func (d *GroupMemberDao) IsMemberOfGroupFromCache(ctx context.Context, gid, uid types.ID) (int, error) {
 	key := fmt.Sprintf("group_members_%s", gid)
-	b, err := cache.GetFromHash(ctx, key, uid)
+	b, err := cache.GetFromHash(ctx, key, uid.String())
 	if err != nil {
 		return 0, err
 	}
@@ -85,12 +86,12 @@ func (d *GroupMemberDao) IsMemberOfGroupFromCache(ctx context.Context, gid, uid 
 	return i, nil
 }
 
-func (d *GroupMemberDao) SetMemberStatusToCache(ctx context.Context, gid, uid string, status int) error {
+func (d *GroupMemberDao) SetMemberStatusToCache(ctx context.Context, gid, uid types.ID, status int) error {
 	key := fmt.Sprintf("group_members_%s", gid)
-	return cache.SetToHash(ctx, key, uid, []byte(strconv.Itoa(status)))
+	return cache.SetToHash(ctx, key, uid.String(), []byte(strconv.Itoa(status)))
 }
 
-func (d *GroupMemberDao) GetGroupMemberByGIDUID(ctx context.Context, gid, uid string) (*data.GroupMember, error) {
+func (d *GroupMemberDao) GetGroupMemberByGIDUID(ctx context.Context, gid, uid types.ID) (*data.GroupMember, error) {
 	groupMember := &data.GroupMember{}
 	tx := db.GetDBFromCtx(ctx).Where("gid = ? AND uid = ?", gid, uid).First(groupMember)
 	if tx.Error != nil {
@@ -103,7 +104,7 @@ func (d *GroupMemberDao) GetGroupMemberByGIDUID(ctx context.Context, gid, uid st
 	return groupMember, nil
 }
 
-func (d *GroupMemberDao) ListGroupMembersByGID(ctx context.Context, gid string) ([]*data.GroupMember, error) {
+func (d *GroupMemberDao) ListGroupMembersByGID(ctx context.Context, gid types.ID) ([]*data.GroupMember, error) {
 	groupMembers := make([]*data.GroupMember, 0)
 	tx := db.GetDBFromCtx(ctx).Where("gid = ?", gid).Find(&groupMembers)
 	if tx.Error != nil {
@@ -113,7 +114,7 @@ func (d *GroupMemberDao) ListGroupMembersByGID(ctx context.Context, gid string) 
 	return groupMembers, nil
 }
 
-func (d *GroupMemberDao) ListGroupByUID(ctx context.Context, uid string) ([]*data.GroupMember, error) {
+func (d *GroupMemberDao) ListGroupByUID(ctx context.Context, uid types.ID) ([]*data.GroupMember, error) {
 	groupMembers := make([]*data.GroupMember, 0)
 	tx := db.GetDBFromCtx(ctx).Where("uid = ?", uid).Find(&groupMembers)
 	if tx.Error != nil {
@@ -124,8 +125,8 @@ func (d *GroupMemberDao) ListGroupByUID(ctx context.Context, uid string) ([]*dat
 }
 
 // ListInGroupUIDs returns uid list in group of given uids,
-func (d *GroupMemberDao) ListInGroupUIDs(ctx context.Context, gid string, uids []string) ([]string, error) {
-	result := make([]string, 0)
+func (d *GroupMemberDao) ListInGroupUIDs(ctx context.Context, gid types.ID, uids []types.ID) ([]types.ID, error) {
+	result := make([]types.ID, 0)
 	tx := db.GetDBFromCtx(ctx).Table("group_member").Select("uid").
 		Where("gid = ? AND uid in (?)", gid, uids).Find(&result)
 	if tx.Error != nil {
@@ -153,7 +154,7 @@ func (d *GroupMemberDao) DeleteGroupMember(ctx context.Context, groupMember *dat
 	return nil
 }
 
-func (d *GroupMemberDao) DeleteGroupMembers(ctx context.Context, gid string, uids []string) error {
+func (d *GroupMemberDao) DeleteGroupMembers(ctx context.Context, gid types.ID, uids []types.ID) error {
 	tx := db.GetDBFromCtx(ctx).Where("gid = ? AND uid in (?)", gid, uids).Delete(&data.GroupMember{})
 	if tx.Error != nil {
 		return tx.Error
