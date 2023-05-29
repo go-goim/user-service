@@ -4,9 +4,10 @@ import (
 	"context"
 	"sync"
 
+	"github.com/go-goim/api/errors"
+
 	// api
 	messagev1 "github.com/go-goim/api/message/v1"
-	responsepb "github.com/go-goim/api/transport/response"
 	friendpb "github.com/go-goim/api/user/friend/v1"
 	"github.com/go-goim/core/pkg/util"
 
@@ -64,12 +65,12 @@ func (s *FriendService) AddFriend(ctx context.Context, req *friendpb.BaseFriendR
 	}
 
 	rsp := &friendpb.AddFriendResponse{
-		Response: responsepb.Code_OK.BaseResponse(),
-		Result:   &friendpb.AddFriendResult{},
+		Error:  errors.ErrorOK(),
+		Result: &friendpb.AddFriendResult{},
 	}
 
 	if friendUser == nil {
-		rsp.Response = responsepb.Code_UserNotExist.BaseResponse()
+		rsp.Error = errors.ErrorCode_UserNotExist.Err2()
 		return rsp, nil
 	}
 
@@ -224,26 +225,26 @@ func (s *FriendService) sendFriendRequest(ctx context.Context, req *friendpb.Bas
 }
 
 func (s *FriendService) ConfirmFriendRequest(ctx context.Context, req *friendpb.ConfirmFriendRequestRequest) (
-	*responsepb.BaseResponse, error) {
+	*errors.Error, error) {
 	fr, err := s.friendRequestDao.GetFriendRequestByID(ctx, req.FriendRequestId)
 	if err != nil {
 		return nil, err
 	}
 
 	if fr == nil {
-		return responsepb.Code_FriendRequestNotExist.BaseResponse(), nil
+		return errors.ErrorCode_FriendRequestNotExist.Err2(), nil
 	}
 
 	// check if the friend request is send to me
 	if fr.FriendUID.Int64() != req.Uid {
-		return responsepb.Code_FriendRequestNotExist.BaseResponse(), nil
+		return errors.ErrorCode_FriendRequestNotExist.Err2(), nil
 	}
 
 	// cannot confirm friend request if the friend request is not requested
 	// it means the friend request is accepted or rejected
 	if !fr.IsRequested() {
-		return responsepb.NewBaseResponseWithMessage(responsepb.Code_FriendRequestStatusError,
-			"current friend request status cannot be confirmed"), nil
+		return errors.ErrorCode_FriendRequestStatusError.
+			WithMessage("current friend request status cannot be confirmed"), nil
 	}
 
 	if req.Action == friendpb.ConfirmFriendRequestAction_REJECT {
@@ -252,7 +253,7 @@ func (s *FriendService) ConfirmFriendRequest(ctx context.Context, req *friendpb.
 			return nil, err
 		}
 
-		return responsepb.Code_OK.BaseResponse(), nil
+		return errors.ErrorOK(), nil
 	}
 
 	// accept the friend request
@@ -273,7 +274,7 @@ func (s *FriendService) ConfirmFriendRequest(ctx context.Context, req *friendpb.
 			return nil, err
 		}
 
-		return responsepb.Code_OK.BaseResponse(), nil
+		return errors.ErrorOK(), nil
 	}
 
 	// big transaction here
@@ -298,7 +299,7 @@ func (s *FriendService) ConfirmFriendRequest(ctx context.Context, req *friendpb.
 	})
 
 	if err != nil {
-		return responsepb.NewBaseResponseWithError(err), nil
+		return errors.ErrorCode_DBError.WithError(err), nil
 	}
 
 	// set friend status in the cache
@@ -321,8 +322,7 @@ func (s *FriendService) ConfirmFriendRequest(ctx context.Context, req *friendpb.
 		}
 	}
 
-	return responsepb.Code_OK.BaseResponse(), nil
-
+	return errors.ErrorOK(), nil
 }
 
 func (s *FriendService) createOrSetFriend(ctx context.Context, uid, friendUID types.ID, f *data.Friend) error {
@@ -352,7 +352,7 @@ func (s *FriendService) GetFriendRequest(ctx context.Context, req *friendpb.Base
 	}
 
 	rsp := &friendpb.GetFriendRequestResponse{
-		Response: responsepb.Code_OK.BaseResponse(),
+		Error: errors.ErrorOK(),
 	}
 
 	if fr == nil {
@@ -377,7 +377,7 @@ func (s *FriendService) QueryFriendRequestList(ctx context.Context, req *friendp
 	}
 
 	rsp := &friendpb.QueryFriendRequestListResponse{
-		Response:          responsepb.Code_OK.BaseResponse(),
+		Error:             errors.ErrorOK(),
 		FriendRequestList: make([]*friendpb.FriendRequest, 0, len(frList)),
 	}
 
@@ -393,17 +393,17 @@ func (s *FriendService) QueryFriendRequestList(ctx context.Context, req *friendp
  */
 
 func (s *FriendService) IsFriend(ctx context.Context, req *friendpb.BaseFriendRequest) (
-	*responsepb.BaseResponse, error) {
+	*errors.Error, error) {
 	ok, err := s.friendDao.CheckIsFriend(ctx, types.ID(req.Uid), types.ID(req.FriendUid))
 	if err != nil {
-		return responsepb.NewBaseResponseWithMessage(responsepb.Code_CacheError, err.Error()), nil
+		return errors.ErrorCode_CacheError.WithError(err), nil
 	}
 
 	if ok {
-		return responsepb.Code_OK.BaseResponse(), nil
+		return errors.ErrorOK(), nil
 	}
 
-	return responsepb.Code_RelationNotExist.BaseResponse(), nil
+	return errors.ErrorCode_RelationNotExist.Err2(), nil
 }
 
 func (s *FriendService) GetFriend(ctx context.Context, req *friendpb.BaseFriendRequest) (
@@ -414,7 +414,7 @@ func (s *FriendService) GetFriend(ctx context.Context, req *friendpb.BaseFriendR
 	}
 
 	rsp := &friendpb.GetFriendResponse{
-		Response: responsepb.Code_OK.BaseResponse(),
+		Error: errors.ErrorOK(),
 	}
 
 	if f != nil {
@@ -433,7 +433,7 @@ func (s *FriendService) QueryFriendList(ctx context.Context, req *friendpb.Query
 
 	var (
 		rsp = &friendpb.QueryFriendListResponse{
-			Response: responsepb.Code_OK.BaseResponse(),
+			Error: errors.ErrorOK(),
 		}
 		friendUIDList = make([]types.ID, len(friends))
 		friendMap     = make(map[int64]*data.User)
@@ -463,35 +463,37 @@ func (s *FriendService) QueryFriendList(ctx context.Context, req *friendpb.Query
 	return rsp, nil
 }
 
+// UpdateFriendStatus update friend status.
+// Second error is grpc error, not business error.
 func (s *FriendService) UpdateFriendStatus(ctx context.Context, req *friendpb.UpdateFriendStatusRequest) (
-	*responsepb.BaseResponse, error) {
+	*errors.Error, error) {
 	var (
 		uid  = types.ID(req.Info.Uid)
 		fuid = types.ID(req.Info.FriendUid)
 	)
 	f, err := s.friendDao.GetFriend(ctx, uid, fuid)
 	if err != nil {
-		return nil, err
+		return errors.ErrorCode_DBError.WithError(err), nil
 	}
 
 	if f == nil {
-		return responsepb.Code_RelationNotExist.BaseResponse(), nil
+		return errors.ErrorCode_RelationNotExist.Err2(), nil
 	}
 
 	ok := f.Status.CanUpdateStatus(req.Status)
 	if !ok {
-		return responsepb.Code_InvalidUpdateRelationAction.BaseResponse(), nil
+		return errors.ErrorCode_InvalidUpdateRelationAction.Err2(), nil
 	}
 
 	if f.Status == req.Status {
-		return responsepb.Code_OK.BaseResponse(), nil
+		return errors.ErrorOK(), nil
 	}
 
 	// unfriend action, need remove friend status from cache
 	if req.Status == friendpb.FriendStatus_STRANGER || req.Status == friendpb.FriendStatus_BLOCKED {
 		err = s.onUnfriend(ctx, uid, fuid)
 		if err != nil {
-			return responsepb.NewBaseResponseWithMessage(responsepb.Code_CacheError, err.Error()), nil
+			return errors.ErrorCode_CacheError.WithError(err), nil
 		}
 	}
 
@@ -499,16 +501,16 @@ func (s *FriendService) UpdateFriendStatus(ctx context.Context, req *friendpb.Up
 	if req.Status == friendpb.FriendStatus_UNBLOCKED {
 		err = s.onUnblock(ctx, uid, fuid)
 		if err != nil {
-			return responsepb.NewBaseResponseWithMessage(responsepb.Code_CacheError, err.Error()), nil
+			return errors.ErrorCode_CacheError.WithError(err), nil
 		}
 	}
 
 	f.SetStatus(req.Status)
 	if err := s.friendDao.UpdateFriendStatus(ctx, f); err != nil {
-		return responsepb.NewBaseResponseWithError(err), nil
+		return errors.ErrorCode_DBError.WithError(err), nil
 	}
 
-	return responsepb.Code_OK.BaseResponse(), nil
+	return errors.ErrorOK(), nil
 }
 
 // delete or block friend.
@@ -538,7 +540,7 @@ func (s *FriendService) onUnblock(ctx context.Context, uid, friendUID types.ID) 
 func (s *FriendService) CheckSendMessageAbility(ctx context.Context, req *friendpb.CheckSendMessageAbilityRequest) (
 	*friendpb.CheckSendMessageAbilityResponse, error) {
 	rsp := &friendpb.CheckSendMessageAbilityResponse{
-		Response: responsepb.Code_OK.BaseResponse(),
+		Error: errors.ErrorOK(),
 	}
 	// TODO: should check if there a session id in request.
 	//  If there is, check if the session id is valid.
@@ -556,7 +558,7 @@ func (s *FriendService) CheckSendMessageAbility(ctx context.Context, req *friend
 		}
 
 		if !ok {
-			rsp.Response = responsepb.Code_RelationNotExist.BaseResponse()
+			rsp.Error = errors.ErrorCode_RelationNotExist.Err2()
 			return rsp, nil
 		}
 	}
@@ -568,7 +570,7 @@ func (s *FriendService) CheckSendMessageAbility(ctx context.Context, req *friend
 		}
 
 		if !ok {
-			rsp.Response = responsepb.Code_RelationNotExist.BaseResponse()
+			rsp.Error = errors.ErrorCode_RelationNotExist.Err2()
 			return rsp, nil
 		}
 	}
