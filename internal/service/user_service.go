@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	responsepb "github.com/go-goim/api/transport/response"
+	"github.com/go-goim/api/errors"
 	userv1 "github.com/go-goim/api/user/v1"
 	"github.com/go-goim/core/pkg/types"
 
@@ -43,11 +43,11 @@ func (s *UserService) GetUser(ctx context.Context, req *userv1.GetUserInfoReques
 	}
 
 	rsp := &userv1.UserResponse{
-		Response: responsepb.Code_OK.BaseResponse(),
+		Error: errors.ErrorOK(),
 	}
 
 	if user == nil || user.IsDeleted() {
-		rsp.Response = responsepb.Code_UserNotExist.BaseResponse()
+		rsp.Error = errors.NewErrorWithCode(errors.ErrorCode_UserNotExist)
 		return rsp, nil
 	}
 
@@ -62,11 +62,11 @@ func (s *UserService) QueryUser(ctx context.Context, req *userv1.QueryUserReques
 	}
 
 	rsp := &userv1.UserResponse{
-		Response: responsepb.Code_OK.BaseResponse(),
+		Error: errors.ErrorOK(),
 	}
 
 	if user == nil || user.IsDeleted() {
-		rsp.Response = responsepb.Code_UserNotExist.BaseResponse()
+		rsp.Error = errors.NewErrorWithCode(errors.ErrorCode_UserNotExist)
 		return rsp, nil
 	}
 
@@ -106,7 +106,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *userv1.CreateUserRequ
 	}
 
 	rsp := &userv1.UserResponse{
-		Response: responsepb.Code_OK.BaseResponse(),
+		Error: errors.ErrorOK(),
 	}
 
 	if user == nil {
@@ -142,7 +142,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *userv1.CreateUserRequ
 		return rsp, nil
 	}
 
-	rsp.Response = responsepb.Code_UserExist.BaseResponse()
+	rsp.Error = errors.NewErrorWithCode(errors.ErrorCode_UserExist)
 	return rsp, nil
 
 }
@@ -154,11 +154,11 @@ func (s *UserService) UpdateUser(ctx context.Context, req *userv1.UpdateUserRequ
 	}
 
 	rsp := &userv1.UserResponse{
-		Response: responsepb.Code_OK.BaseResponse(),
+		Error: errors.ErrorOK(),
 	}
 
 	if user == nil || user.IsDeleted() {
-		rsp.Response = responsepb.Code_UserNotExist.BaseResponse()
+		rsp.Error = errors.NewErrorWithCode(errors.ErrorCode_UserNotExist)
 		return rsp, nil
 	}
 
